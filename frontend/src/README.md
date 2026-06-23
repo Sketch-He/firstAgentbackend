@@ -19,6 +19,7 @@
 2. 聊天状态集中在 `composables/useChat.ts`
 3. 服务探活逻辑在 `composables/useServiceHealth.ts`
 4. HTTP 与 SSE 请求封装在 `lib/chatApi.ts`
+5. 消息 Markdown 解析工具在 `lib/markdown.ts`
 
 ## 协作约定
 

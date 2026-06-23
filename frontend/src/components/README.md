@@ -6,11 +6,11 @@
 
 ## 当前组件
 
-- `Header.vue`：页面头部、生成状态、后端服务状态
+- `Header.vue`：页面头部、生成阶段、模型信息、后端服务状态
 - `ErrorBanner.vue`：错误提示
-- `MessageBubble.vue`：单条消息展示
-- `MessageList.vue`：消息列表、流式生成占位、自动滚动到底部
-- `Composer.vue`：输入框、发送、停止生成、重试按钮
+- `MessageBubble.vue`：单条消息展示、基础 Markdown 渲染、代码块复制
+- `MessageList.vue`：消息列表、流式生成阶段提示、自动滚动到底部
+- `Composer.vue`：输入框、发送、停止生成、重试按钮、生成状态提示
 
 ## 设计原则
 

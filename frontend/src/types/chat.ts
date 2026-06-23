@@ -1,4 +1,10 @@
 export type ChatRole = "system" | "user" | "assistant" | "tool";
+export type GenerationPhase =
+  | "idle"
+  | "submitting"
+  | "awaiting"
+  | "streaming"
+  | "stopping";
 
 export interface ChatMessage {
   id: string;

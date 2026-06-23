@@ -10,7 +10,10 @@ const {
   canRetry,
   draft,
   error,
+  generationLabel,
+  generationPhase,
   isGenerating,
+  latestStreamMeta,
   messages,
   resetConversation,
   retryLastTurn,
@@ -31,17 +34,27 @@ const { checkHealth, serviceName, status } = useServiceHealth();
 
     <section class="chat-shell">
       <Header
+        :generation-label="generationLabel"
+        :generation-phase="generationPhase"
         :is-generating="isGenerating"
+        :model-name="latestStreamMeta?.model ?? ''"
         :service-name="serviceName"
         :service-status="status"
         @reset="resetConversation"
         @retry-health="checkHealth"
       />
       <ErrorBanner :message="error" @dismiss="setError('')" />
-      <MessageList :is-generating="isGenerating" :messages="messages" />
+      <MessageList
+        :generation-label="generationLabel"
+        :generation-phase="generationPhase"
+        :is-generating="isGenerating"
+        :messages="messages"
+      />
       <Composer
         :can-retry="canRetry"
         :draft="draft"
+        :generation-label="generationLabel"
+        :generation-phase="generationPhase"
         :is-generating="isGenerating"
         @retry="retryLastTurn"
         @stop="stopGeneration"

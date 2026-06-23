@@ -1,9 +1,12 @@
 <script setup lang="ts">
 import { nextTick, ref, watch } from "vue";
+import type { GenerationPhase } from "../types/chat";
 import type { ChatMessage } from "../types/chat";
 import MessageBubble from "./MessageBubble.vue";
 
 const props = defineProps<{
+  generationLabel: string;
+  generationPhase: GenerationPhase;
   isGenerating: boolean;
   messages: ChatMessage[];
 }>();
@@ -61,9 +64,12 @@ watch(
       />
 
       <div v-if="isGenerating" class="typing-row" aria-live="polite">
-        <span />
-        <span />
-        <span />
+        <div class="typing-dots" :class="generationPhase">
+          <span />
+          <span />
+          <span />
+        </div>
+        <p class="typing-copy">{{ generationLabel }}</p>
       </div>
     </div>
   </section>

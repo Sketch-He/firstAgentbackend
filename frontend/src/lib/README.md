@@ -7,6 +7,7 @@
 ## 当前文件
 
 - `chatApi.ts`：健康检查、普通 JSON 请求、SSE 流解析
+- `markdown.ts`：前端本地 Markdown 解析与安全 HTML 渲染辅助
 
 ## 当前关键逻辑
 
@@ -15,6 +16,7 @@
 3. 这样做的原因是 `POST /api/chat/stream` 需要携带请求体，原生 `EventSource` 不适合当前场景。
 4. 当前本地开发默认通过 Vite 代理转发到 `127.0.0.1:8001`，用于避开旧的 `8000` 端口冲突。
 5. 流式请求当前支持 `AbortController` 中断，供前端实现“停止生成”。
+6. Markdown 渲染当前不依赖第三方库，先覆盖标题、列表、引用、链接、行内代码和 fenced code block。
 
 ## 协作约定
 

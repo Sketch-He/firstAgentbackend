@@ -8,10 +8,14 @@
   --muted: #667066;
   --accent: #1d6b57;
   --accent-soft: #d7efe7;
+  --accent-warm: #c07b2d;
   --user-bubble: #1f241f;
   --user-text: #f6f2e9;
   --danger: #8f3f34;
   --danger-bg: #f7dfd8;
+  --code-bg: #1a201d;
+  --code-panel: #101512;
+  --code-border: rgba(255, 255, 255, 0.08);
   --shadow: 0 24px 60px rgba(29, 39, 34, 0.12);
   font-family: "Segoe UI Variable Display", "Aptos", "Trebuchet MS", sans-serif;
   line-height: 1.5;
@@ -131,6 +135,21 @@ button {
   color: var(--accent);
 }
 
+.status-pill.stopping {
+  background: rgba(192, 123, 45, 0.14);
+  color: var(--accent-warm);
+}
+
+.model-pill {
+  padding: 10px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.56);
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
 .secondary-button,
 .ghost-button,
 .primary-button {
@@ -236,15 +255,133 @@ button {
   white-space: pre-wrap;
 }
 
-.message-content p + p {
-  margin-top: 10px;
+.message-placeholder {
+  color: var(--muted);
+  font-style: italic;
+}
+
+.markdown-content {
+  display: grid;
+  gap: 12px;
+}
+
+.markdown-paragraph,
+.markdown-blockquote,
+.markdown-list,
+.markdown-heading {
+  margin: 0;
+}
+
+.markdown-heading {
+  line-height: 1.12;
+  letter-spacing: -0.03em;
+}
+
+.markdown-content h1 {
+  font-size: 1.6rem;
+}
+
+.markdown-content h2 {
+  font-size: 1.35rem;
+}
+
+.markdown-content h3 {
+  font-size: 1.15rem;
+}
+
+.markdown-content h4,
+.markdown-content h5,
+.markdown-content h6 {
+  font-size: 1rem;
+}
+
+.markdown-content a {
+  color: inherit;
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 0.16em;
+}
+
+.markdown-content strong {
+  font-weight: 700;
+}
+
+.markdown-content code:not(pre code) {
+  display: inline-block;
+  padding: 0.1em 0.45em;
+  border-radius: 8px;
+  background: rgba(29, 107, 87, 0.1);
+  font-family: "Cascadia Code", "Consolas", monospace;
+  font-size: 0.94em;
+}
+
+.markdown-list {
+  padding-left: 1.25rem;
+}
+
+.markdown-list li + li {
+  margin-top: 0.35rem;
+}
+
+.markdown-blockquote {
+  padding-left: 14px;
+  border-left: 3px solid rgba(29, 107, 87, 0.28);
+  color: var(--muted);
+}
+
+.code-block-shell {
+  overflow: hidden;
+  border: 1px solid var(--code-border);
+  border-radius: 18px;
+  background: var(--code-panel);
+  color: #eef4ef;
+}
+
+.code-block-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--code-border);
+  background: rgba(255, 255, 255, 0.04);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.code-copy-button {
+  padding: 6px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+}
+
+.code-block {
+  margin: 0;
+  padding: 16px 18px;
+  overflow: auto;
+  background: var(--code-bg);
+}
+
+.code-block code {
+  font-family: "Cascadia Code", "Consolas", monospace;
+  font-size: 0.94rem;
+  line-height: 1.6;
+  white-space: pre;
 }
 
 .typing-row {
   display: flex;
-  gap: 8px;
+  gap: 12px;
   align-items: center;
   padding: 0 12px 8px;
+}
+
+.typing-dots {
+  display: flex;
+  gap: 8px;
+  align-items: center;
 }
 
 .typing-row span {
@@ -253,6 +390,21 @@ button {
   border-radius: 50%;
   background: var(--accent);
   animation: pulse 900ms infinite ease-in-out;
+}
+
+.typing-dots.awaiting span {
+  background: rgba(29, 107, 87, 0.46);
+}
+
+.typing-dots.stopping span {
+  background: var(--accent-warm);
+}
+
+.typing-copy {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.92rem;
+  font-weight: 600;
 }
 
 .typing-row span:nth-child(2) {
@@ -283,6 +435,11 @@ button {
   align-items: end;
 }
 
+.composer-input-shell {
+  display: grid;
+  gap: 8px;
+}
+
 .retry-button {
   min-height: 56px;
 }
@@ -298,9 +455,20 @@ button {
   color: var(--text);
 }
 
+.composer-hint {
+  margin: 0;
+  padding-left: 8px;
+  color: var(--muted);
+  font-size: 0.84rem;
+}
+
 .composer-input:focus {
   outline: 2px solid rgba(29, 107, 87, 0.2);
   border-color: rgba(29, 107, 87, 0.28);
+}
+
+.primary-button.danger {
+  background: var(--accent-warm);
 }
 
 .glow {
@@ -354,6 +522,11 @@ button {
 
   .primary-button {
     width: 100%;
+  }
+
+  .code-block-header {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }
 
