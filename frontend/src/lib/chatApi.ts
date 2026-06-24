@@ -1,6 +1,8 @@
 import type {
   ChatRequest,
   ChatResponse,
+  ConversationDetail,
+  ConversationSummary,
   HealthResponse,
   StreamDoneEvent,
   StreamErrorEvent,
@@ -10,28 +12,60 @@ import type {
 
 const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/$/, "");
 
-// 统一保留一个最小请求封装，后续接鉴权、超时和 SSE 时会更好扩展。
-async function postJson<TResponse>(
+async function readErrorMessage(response: Response, fallbackMessage: string): Promise<string> {
+  const contentType = response.headers.get("content-type") ?? "";
+
+  if (!contentType.includes("application/json")) {
+    return fallbackMessage;
+  }
+
+  try {
+    const payload = (await response.json()) as { detail?: string };
+    return payload.detail || fallbackMessage;
+  } catch {
+    return fallbackMessage;
+  }
+}
+
+async function getJson<TResponse>(path: string, fallbackMessage: string): Promise<TResponse> {
+  const response = await fetch(`${apiBaseUrl}${path}`);
+
+  if (!response.ok) {
+    throw new Error(await readErrorMessage(response, fallbackMessage));
+  }
+
+  return (await response.json()) as TResponse;
+}
+
+async function sendJson<TResponse>(
+  method: "POST" | "PATCH" | "DELETE",
   path: string,
-  payload: unknown
+  payload: unknown | undefined,
+  fallbackMessage: string
 ): Promise<TResponse> {
   const response = await fetch(`${apiBaseUrl}${path}`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify(payload)
+    method,
+    headers: payload === undefined
+      ? undefined
+      : {
+          "Content-Type": "application/json"
+        },
+    body: payload === undefined ? undefined : JSON.stringify(payload)
   });
 
   if (!response.ok) {
-    throw new Error(await readErrorMessage(response, `请求失败，状态码：${response.status}`));
+    throw new Error(await readErrorMessage(response, fallbackMessage));
+  }
+
+  if (response.status === 204) {
+    return undefined as TResponse;
   }
 
   return (await response.json()) as TResponse;
 }
 
 export function createChatReply(payload: ChatRequest): Promise<ChatResponse> {
-  return postJson<ChatResponse>("/api/chat", payload);
+  return sendJson<ChatResponse>("POST", "/api/chat", payload, "请求失败。");
 }
 
 interface StreamChatHandlers {
@@ -47,23 +81,16 @@ export interface StreamChatController {
 }
 
 export async function fetchHealth(): Promise<HealthResponse> {
-  const response = await fetch(`${apiBaseUrl}/health`);
-
-  if (!response.ok) {
-    throw new Error(await readErrorMessage(response, `健康检查失败，状态码：${response.status}`));
-  }
-
-  return (await response.json()) as HealthResponse;
+  return getJson<HealthResponse>("/health", "健康检查失败。");
 }
 
 export async function streamChatReply(
   payload: ChatRequest,
   handlers: StreamChatHandlers
-) : Promise<StreamChatController> {
+): Promise<StreamChatController> {
   const abortController = new AbortController();
 
   const completed = (async () => {
-    // 前端这里发的是 POST + SSE，不是普通 EventSource。
     const response = await fetch(`${apiBaseUrl}/api/chat/stream`, {
       method: "POST",
       headers: {
@@ -87,7 +114,6 @@ export async function streamChatReply(
     const decoder = new TextDecoder("utf-8");
     let buffer = "";
 
-    // 按 SSE 的空行分隔事件块，再解析 event/data 两行。
     while (true) {
       const { done, value } = await reader.read();
 
@@ -101,7 +127,9 @@ export async function streamChatReply(
       buffer = chunks.pop() ?? "";
 
       for (const chunk of chunks) {
-        parseSseChunk(chunk, handlers);
+        if (chunk.trim()) {
+          parseSseChunk(chunk, handlers);
+        }
       }
     }
 
@@ -133,11 +161,14 @@ function parseSseChunk(chunk: string, handlers: StreamChatHandlers) {
 
   const eventName = eventLine.slice("event:".length).trim();
   const jsonPayload = dataLine.slice("data:".length).trim();
-  const payload = JSON.parse(jsonPayload) as
-    | StreamMetaEvent
-    | StreamMessageEvent
-    | StreamErrorEvent
-    | StreamDoneEvent;
+
+  let payload: StreamMetaEvent | StreamMessageEvent | StreamErrorEvent | StreamDoneEvent;
+
+  try {
+    payload = JSON.parse(jsonPayload);
+  } catch {
+    return;
+  }
 
   if (eventName === "meta") {
     handlers.onMeta?.(payload as StreamMetaEvent);
@@ -159,17 +190,41 @@ function parseSseChunk(chunk: string, handlers: StreamChatHandlers) {
   }
 }
 
-async function readErrorMessage(response: Response, fallbackMessage: string): Promise<string> {
-  const contentType = response.headers.get("content-type") ?? "";
+export async function listConversations(): Promise<ConversationSummary[]> {
+  return getJson<ConversationSummary[]>("/api/conversations", "获取会话列表失败。");
+}
 
-  if (!contentType.includes("application/json")) {
-    return fallbackMessage;
-  }
+export async function createConversation(title?: string): Promise<ConversationSummary> {
+  return sendJson<ConversationSummary>(
+    "POST",
+    "/api/conversations",
+    { title: title ?? "新对话" },
+    "创建会话失败。"
+  );
+}
 
-  try {
-    const payload = (await response.json()) as { detail?: string };
-    return payload.detail || fallbackMessage;
-  } catch {
-    return fallbackMessage;
-  }
+export async function getConversation(id: string): Promise<ConversationDetail> {
+  return getJson<ConversationDetail>(`/api/conversations/${id}`, "获取会话详情失败。");
+}
+
+export async function updateConversationTitle(id: string, title: string): Promise<ConversationSummary> {
+  return sendJson<ConversationSummary>(
+    "PATCH",
+    `/api/conversations/${id}`,
+    { title },
+    "更新会话标题失败。"
+  );
+}
+
+export async function deleteConversation(id: string): Promise<void> {
+  await sendJson<void>("DELETE", `/api/conversations/${id}`, undefined, "删除会话失败。");
+}
+
+export async function deleteLastTurn(id: string): Promise<ConversationSummary> {
+  return sendJson<ConversationSummary>(
+    "DELETE",
+    `/api/conversations/${id}/last-turn`,
+    undefined,
+    "准备重试上一轮对话失败。"
+  );
 }

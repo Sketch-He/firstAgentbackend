@@ -1,9 +1,19 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.router import api_router
 from app.api.routes.health import router as health_router
 from app.core.config import get_settings
+from app.core.database import init_db
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    await init_db()
+    yield
+
 
 def create_app() -> FastAPI:
     settings = get_settings()
@@ -11,7 +21,8 @@ def create_app() -> FastAPI:
     app = FastAPI(
         title=settings.app_name,
         version="0.1.0",
-        description="Agent Demo 的 FastAPI 服务端骨架。"
+        description="Agent Demo 的 FastAPI 服务端骨架。",
+        lifespan=lifespan
     )
 
     # 先放开本地开发常用跨域，后续上线时再按真实域名收紧。
@@ -35,7 +46,7 @@ def create_app() -> FastAPI:
             "health": "/health",
             "status": "服务已启动"
         }
-    
+
     print(">>> [DEBUG] FastAPI app 已创建，服务正在启动…")
 
     return app

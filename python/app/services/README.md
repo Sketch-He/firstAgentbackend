@@ -8,12 +8,15 @@
 
 - `llm.py`：真实 DeepSeek 兼容聊天调用、流式输出、错误包装
 - `agent.py`：后续 Agent 编排入口占位
+- `conversation.py`：会话 CRUD（创建、列表、详情、更新标题、删除）、消息保存、自动标题、上一轮删除
 
 ## 当前关键逻辑
 
-1. `llm.py` 中 `generate_reply` 负责普通聊天响应
-2. `llm.py` 中 `stream_reply` 负责 SSE 增量输出
-3. 这里会过滤前端欢迎语，避免把 UI 占位文本误送给模型
+1. `llm.py` 中 `generate_reply` 负责普通聊天响应。
+2. `llm.py` 中 `stream_reply` 负责 SSE 增量输出。
+3. 这里会过滤前端欢迎语，避免把 UI 占位文本误送给模型。
+4. `conversation.py` 使用 SQLite 持久化会话和消息，自动从用户首条消息生成会话标题。
+5. 重试上一轮时，会通过服务层先删除数据库中最后一轮用户/助手消息，再重新发起生成。
 
 ## 协作约定
 

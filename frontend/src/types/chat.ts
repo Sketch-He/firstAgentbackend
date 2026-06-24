@@ -19,6 +19,7 @@ export interface ChatRequestMessage {
 
 export interface ChatRequest {
   messages: ChatRequestMessage[];
+  conversation_id?: string;
 }
 
 export interface ChatResponse {
@@ -31,10 +32,18 @@ export interface HealthResponse {
   service: string;
 }
 
+export interface ConversationSummary {
+  id: string;
+  title: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface StreamMetaEvent {
   mode: string;
   provider?: string;
   model?: string;
+  conversation?: ConversationSummary;
 }
 
 export interface StreamMessageEvent {
@@ -48,4 +57,17 @@ export interface StreamErrorEvent {
 
 export interface StreamDoneEvent {
   finish_reason: string;
+  conversation?: ConversationSummary;
+}
+
+export interface ConversationMessage {
+  id: string;
+  role: ChatRole;
+  content: string;
+  sort_order: number;
+  created_at: string;
+}
+
+export interface ConversationDetail extends ConversationSummary {
+  messages: ConversationMessage[];
 }

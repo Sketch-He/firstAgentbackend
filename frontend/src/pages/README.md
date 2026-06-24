@@ -10,8 +10,9 @@
 
 ## 当前关键逻辑
 
-1. 页面本身不直接发请求，主要组合 `Header`、`MessageList`、`Composer` 和 composables。
-2. 页面负责把服务状态和聊天状态接到展示层。
+1. 页面本身只组合 `Header`、`MessageList`、`Composer`、`Sidebar` 和 composables，不承载复杂请求实现。
+2. 页面负责把服务状态、会话列表状态和聊天状态接到展示层。
+3. 当前通过版本号防止“快速切换多个会话时旧请求覆盖新结果”的竞态。
 
 ## 协作约定
 
