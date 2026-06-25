@@ -7,6 +7,8 @@ from app.api.router import api_router
 from app.api.routes.health import router as health_router
 from app.core.config import get_settings
 from app.core.database import init_db
+from app.core.exceptions import register_exception_handlers
+from app.schemas.response import ApiResponse
 
 
 @asynccontextmanager
@@ -34,18 +36,22 @@ def create_app() -> FastAPI:
         allow_headers=["*"]
     )
 
+    register_exception_handlers(app)
+
     app.include_router(health_router)
     app.include_router(api_router, prefix=settings.api_prefix)
 
     @app.get("/", tags=["meta"])
-    async def root() -> dict[str, str]:
+    async def root() -> ApiResponse:
         print(">>> [DEBUG] 根路由 / 被访问了")
-        return {
-            "name": settings.app_name,
-            "docs": "/docs",
-            "health": "/health",
-            "status": "服务已启动"
-        }
+        return ApiResponse.success(
+            data={
+                "name": settings.app_name,
+                "docs": "/docs",
+                "health": "/health",
+            },
+            message="服务已启动。",
+        )
 
     print(">>> [DEBUG] FastAPI app 已创建，服务正在启动…")
 

@@ -6,6 +6,26 @@ export type GenerationPhase =
   | "streaming"
   | "stopping";
 
+/** 统一 API 响应包装，与后端 ApiResponse 对应。 */
+export interface ApiResponse<T = unknown> {
+  code: number;
+  message: string;
+  data: T | null;
+}
+
+/** 业务错误码常量，与后端 ErrorCode 对应。 */
+export const ErrorCode = {
+  SUCCESS: 0,
+  NOT_FOUND: 10001,
+  BAD_REQUEST: 10002,
+  CONFLICT: 10003,
+  LLM_CONFIG_ERROR: 20001,
+  LLM_RATE_LIMIT: 20002,
+  LLM_CONNECTION_ERROR: 20003,
+  LLM_SERVICE_ERROR: 20004,
+  UNKNOWN: 99999
+} as const;
+
 export interface ChatMessage {
   id: string;
   role: ChatRole;

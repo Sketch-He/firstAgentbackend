@@ -8,6 +8,7 @@
 
 - `config.py`：环境变量读取、默认配置、CORS 来源解析
 - `database.py`：SQLite 数据库连接管理、建表逻辑
+- `exceptions.py`：业务异常类 `ApiError` 和全局异常处理器注册
 
 ## 当前关键逻辑
 
@@ -19,6 +20,7 @@
 6. 数据库文件固定落在 `python/agent_demo.db`，避免随启动目录变化而漂移
 7. `messages.role` 和 `messages.content` 在建表层增加了基本约束，`conversation_id + sort_order` 增加了唯一索引
 8. 数据库在应用启动时通过 `lifespan` 自动初始化建表
+9. `exceptions.py` 定义 `ApiError`（携带业务错误码和提示信息），并注册全局异常处理器，确保所有错误都以 `{ code, message, data }` 统一格式返回
 
 ## 协作约定
 

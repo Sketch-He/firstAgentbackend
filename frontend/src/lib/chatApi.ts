@@ -1,4 +1,5 @@
 import type {
+  ApiResponse,
   ChatRequest,
   ChatResponse,
   ConversationDetail,
@@ -12,6 +13,17 @@ import type {
 
 const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/$/, "");
 
+/** 业务错误，包含后端返回的 code 和 message。 */
+export class ApiError extends Error {
+  code: number;
+
+  constructor(code: number, message: string) {
+    super(message);
+    this.name = "ApiError";
+    this.code = code;
+  }
+}
+
 async function readErrorMessage(response: Response, fallbackMessage: string): Promise<string> {
   const contentType = response.headers.get("content-type") ?? "";
 
@@ -20,21 +32,52 @@ async function readErrorMessage(response: Response, fallbackMessage: string): Pr
   }
 
   try {
-    const payload = (await response.json()) as { detail?: string };
-    return payload.detail || fallbackMessage;
+    const payload = (await response.json()) as { detail?: string; message?: string };
+    return payload.message || payload.detail || fallbackMessage;
   } catch {
     return fallbackMessage;
   }
 }
 
-async function getJson<TResponse>(path: string, fallbackMessage: string): Promise<TResponse> {
-  const response = await fetch(`${apiBaseUrl}${path}`);
-
+/**
+ * 解析统一 ApiResponse，成功时返回 data，失败时抛出 ApiError。
+ * HTTP 状态码非 2xx 时走 readErrorMessage 降级处理。
+ */
+async function unwrapResponse<T>(response: Response, fallbackMessage: string): Promise<T> {
   if (!response.ok) {
+    // HTTP 层面的错误（如 422 参数校验失败），尝试从 ApiResponse 格式读取。
+    const contentType = response.headers.get("content-type") ?? "";
+    if (contentType.includes("application/json")) {
+      try {
+        const body = (await response.json()) as ApiResponse<T>;
+        if (body.code !== undefined) {
+          throw new ApiError(body.code, body.message || fallbackMessage);
+        }
+      } catch (e) {
+        if (e instanceof ApiError) throw e;
+      }
+    }
+    // 降级：非 ApiResponse 格式的错误响应。
     throw new Error(await readErrorMessage(response, fallbackMessage));
   }
 
-  return (await response.json()) as TResponse;
+  if (response.status === 204) {
+    // 理论上不应该再有 204 了（已改为 200），但做防御性处理。
+    return undefined as T;
+  }
+
+  const body = (await response.json()) as ApiResponse<T>;
+
+  if (body.code !== 0) {
+    throw new ApiError(body.code, body.message || fallbackMessage);
+  }
+
+  return (body.data ?? undefined) as T;
+}
+
+async function getJson<TResponse>(path: string, fallbackMessage: string): Promise<TResponse> {
+  const response = await fetch(`${apiBaseUrl}${path}`);
+  return unwrapResponse<TResponse>(response, fallbackMessage);
 }
 
 async function sendJson<TResponse>(
@@ -45,23 +88,16 @@ async function sendJson<TResponse>(
 ): Promise<TResponse> {
   const response = await fetch(`${apiBaseUrl}${path}`, {
     method,
-    headers: payload === undefined
-      ? undefined
-      : {
-          "Content-Type": "application/json"
-        },
+    headers:
+      payload === undefined
+        ? undefined
+        : {
+            "Content-Type": "application/json"
+          },
     body: payload === undefined ? undefined : JSON.stringify(payload)
   });
 
-  if (!response.ok) {
-    throw new Error(await readErrorMessage(response, fallbackMessage));
-  }
-
-  if (response.status === 204) {
-    return undefined as TResponse;
-  }
-
-  return (await response.json()) as TResponse;
+  return unwrapResponse<TResponse>(response, fallbackMessage);
 }
 
 export function createChatReply(payload: ChatRequest): Promise<ChatResponse> {
@@ -103,7 +139,21 @@ export async function streamChatReply(
     });
 
     if (!response.ok) {
-      throw new Error(await readErrorMessage(response, `流式请求失败，状态码：${response.status}`));
+      // 流式请求的初始 HTTP 错误也尝试解析 ApiResponse 格式。
+      const contentType = response.headers.get("content-type") ?? "";
+      if (contentType.includes("application/json")) {
+        try {
+          const body = (await response.json()) as ApiResponse;
+          if (body.code !== undefined) {
+            throw new ApiError(body.code, body.message || `流式请求失败，状态码：${response.status}`);
+          }
+        } catch (e) {
+          if (e instanceof ApiError) throw e;
+        }
+      }
+      throw new Error(
+        await readErrorMessage(response, `流式请求失败，状态码：${response.status}`)
+      );
     }
 
     if (!response.body) {
@@ -207,7 +257,10 @@ export async function getConversation(id: string): Promise<ConversationDetail> {
   return getJson<ConversationDetail>(`/api/conversations/${id}`, "获取会话详情失败。");
 }
 
-export async function updateConversationTitle(id: string, title: string): Promise<ConversationSummary> {
+export async function updateConversationTitle(
+  id: string,
+  title: string
+): Promise<ConversationSummary> {
   return sendJson<ConversationSummary>(
     "PATCH",
     `/api/conversations/${id}`,

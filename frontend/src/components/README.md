@@ -10,7 +10,7 @@
 - `ErrorBanner.vue`：错误提示
 - `MessageBubble.vue`：单条消息展示、基础 Markdown 渲染、代码块复制
 - `MessageList.vue`：消息列表、流式生成阶段提示、自动滚动到底部
-- `Composer.vue`：输入框、发送、停止生成、重试按钮、生成状态提示
+- `Composer.vue`：两段式输入区（上方输入块、下方工具块）、自增高 textarea、发送/停止/重试交互
 - `Sidebar.vue`：会话历史侧栏、新建/切换/删除会话、时间展示
 
 ## 设计原则

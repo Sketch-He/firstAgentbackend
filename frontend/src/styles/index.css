@@ -39,6 +39,7 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
+  overflow: hidden;
 }
 
 button,
@@ -52,36 +53,42 @@ button {
 
 #root {
   min-height: 100vh;
+  overflow: hidden;
 }
 
 .app-shell {
   position: relative;
-  display: grid;
-  place-items: center;
-  min-height: 100vh;
-  padding: 24px;
+  height: 100vh;
+  padding: 0;
   overflow: hidden;
 }
 
 .layout-shell {
-  display: grid;
-  grid-template-columns: 260px 1fr;
-  gap: 18px;
-  width: min(1300px, 100%);
-  min-height: min(860px, calc(100vh - 48px));
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+  height: 100vh;
+  overflow: hidden;
 }
 
 .sidebar {
+  position: sticky;
+  top: 0;
+  left: 0;
+  flex: 0 0 280px;
+  width: 280px;
+  height: 100vh;
   display: flex;
   flex-direction: column;
   gap: 12px;
-  padding: 20px 16px;
-  border: 1px solid var(--border);
-  border-radius: 28px;
-  background: var(--panel);
-  box-shadow: var(--shadow);
+  padding: 24px 18px;
+  border-right: 1px solid var(--border);
+  background: rgba(255, 251, 244, 0.9);
+  box-shadow: none;
   backdrop-filter: blur(18px);
   overflow: hidden;
+  z-index: 2;
 }
 
 .sidebar-header {
@@ -199,17 +206,32 @@ button {
 
 .chat-shell {
   position: relative;
-  width: 100%;
-  min-height: 0;
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
+  min-width: 0;
+  height: 100vh;
+  padding: 20px 32px;
+  overflow: hidden;
+}
+
+.chat-stage {
+  position: relative;
+  width: min(40%, 747px);
+  min-width: 420px;
+  height: 100%;
   display: grid;
   grid-template-rows: auto auto 1fr auto;
   gap: 18px;
+  min-height: 0;
   padding: 28px;
-  border: 1px solid var(--border);
-  border-radius: 28px;
-  background: var(--panel);
-  box-shadow: var(--shadow);
+  /* border-left: 1px solid rgba(255, 255, 255, 0.4);
+  border-right: 1px solid rgba(255, 255, 255, 0.4);
+  background: rgba(255, 252, 245, 0.58);
+  box-shadow: none; */
   backdrop-filter: blur(18px);
+  overflow: hidden;
 }
 
 .shell-header {
@@ -336,17 +358,17 @@ button {
 }
 
 .message-panel {
+  height: 100%;
   min-height: 0;
-  border: 1px solid var(--border);
-  border-radius: 24px;
-  background: rgba(255, 250, 240, 0.72);
+  /* border: 1px solid var(--border); */
+  /* border-radius: 24px; */
+  /* background: rgba(255, 250, 240, 0.72); */
   overflow: hidden;
 }
 
 .message-list {
   height: 100%;
-  min-height: 360px;
-  max-height: 100%;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   gap: 14px;
@@ -550,59 +572,113 @@ button {
 }
 
 .composer-shell {
+  align-self: end;
+}
+
+.composer-card {
   display: grid;
-  gap: 10px;
+  gap: 0;
+  padding: 12px 14px 12px 16px;
+  border: 1px solid rgba(30, 42, 36, 0.1);
+  border-radius: 24px;
+  background: #FFFAF0;
+  box-shadow: 0 14px 34px rgba(31, 36, 31, 0.08);
 }
 
-.composer-label {
-  font-size: 0.84rem;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--muted);
+.composer-input-block {
+  min-height: 0;
+  padding: 4px 2px 0 0;
+  border-bottom: 1px solid rgba(30, 42, 36, 0.08);
 }
 
-.composer-row {
-  display: grid;
-  grid-template-columns: 1fr auto auto;
-  gap: 14px;
-  align-items: end;
-}
-
-.composer-input-shell {
-  display: grid;
-  gap: 8px;
-}
-
-.retry-button {
+.composer-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 16px;
   min-height: 56px;
+  padding-top: 12px;
+}
+
+.composer-tools {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.composer-chip {
+  padding: 8px 14px;
+  border: 1px solid rgba(30, 42, 36, 0.12);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--text);
+  font-size: 0.86rem;
+  font-weight: 600;
 }
 
 .composer-input {
   width: 100%;
-  padding: 18px 20px;
-  border: 1px solid var(--border);
-  border-radius: 22px;
-  resize: vertical;
-  min-height: 120px;
-  background: rgba(255, 255, 255, 0.78);
+  min-height: 136px;
+  max-height: 272px;
+  padding: 4px 0 12px;
+  border: none;
+  background: transparent;
   color: var(--text);
+  font-size: 1rem;
+  line-height: 1.7;
+  resize: none;
+}
+
+.composer-input::placeholder {
+  color: #a0a9a0;
+}
+
+.composer-input:focus {
+  outline: none;
 }
 
 .composer-hint {
   margin: 0;
-  padding-left: 8px;
   color: var(--muted);
-  font-size: 0.84rem;
+  font-size: 0.82rem;
+  white-space: nowrap;
 }
 
-.composer-input:focus {
-  outline: 2px solid rgba(29, 107, 87, 0.2);
-  border-color: rgba(29, 107, 87, 0.28);
+.composer-send-button {
+  flex: 0 0 auto;
+  width: 38px;
+  height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 999px;
+  background: #1D6B57;
+  color: #ffffff;
+  box-shadow: 0 8px 18px rgba(116, 136, 255, 0.26);
+  transition: transform 140ms ease, background 140ms ease, box-shadow 140ms ease;
 }
 
-.primary-button.danger {
+.composer-send-button:hover {
+  transform: translateY(-1px);
+  /* background: #95a8ff; */
+}
+
+.composer-send-button.stopping {
   background: var(--accent-warm);
+  box-shadow: 0 8px 18px rgba(192, 123, 45, 0.24);
+}
+
+.composer-send-icon {
+  width: 18px;
+  height: 18px;
+}
+
+.composer-send-stop {
+  font-size: 0.8rem;
+  line-height: 1;
 }
 
 .glow {
@@ -643,7 +719,7 @@ button {
 
 @media (max-width: 900px) {
   .layout-shell {
-    grid-template-columns: 1fr;
+    display: block;
   }
 
   .sidebar {
@@ -651,18 +727,27 @@ button {
   }
 
   .chat-shell {
-    min-height: calc(100vh - 24px);
+    height: 100vh;
+    padding: 0;
+  }
+
+  .chat-stage {
+    width: 100%;
+    min-width: 0;
+    height: 100%;
     padding: 22px;
+    border-left: none;
+    border-right: none;
   }
 
   .shell-header,
   .header-actions,
-  .composer-row {
+  .composer-toolbar {
     grid-template-columns: 1fr;
     display: grid;
   }
 
-  .primary-button {
+  .composer-tools {
     width: 100%;
   }
 
@@ -670,16 +755,23 @@ button {
     align-items: flex-start;
     flex-direction: column;
   }
+
+  .composer-send-button {
+    justify-self: end;
+  }
 }
 
 @media (max-width: 640px) {
   .app-shell {
-    padding: 12px;
+    padding: 0;
   }
 
   .chat-shell {
+    padding: 0;
+  }
+
+  .chat-stage {
     padding: 18px;
-    border-radius: 24px;
   }
 
   .shell-header h1 {

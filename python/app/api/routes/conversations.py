@@ -1,5 +1,6 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
 
+from app.core.exceptions import ApiError
 from app.schemas.conversation import (
     ConversationCreate,
     ConversationDetail,
@@ -8,64 +9,79 @@ from app.schemas.conversation import (
     MessageOut,
     MessageSave,
 )
+from app.schemas.response import ApiResponse, ErrorCode
 from app.services.conversation import ConversationService
 
 router = APIRouter(prefix="/conversations", tags=["conversations"])
 conversation_service = ConversationService()
 
 
-@router.get("", response_model=list[ConversationSummary])
-async def list_conversations() -> list[dict]:
-    return await conversation_service.list_conversations()
+@router.get("")
+async def list_conversations() -> ApiResponse[list[ConversationSummary]]:
+    data = await conversation_service.list_conversations()
+    return ApiResponse.success(data=data)
 
 
-@router.post("", response_model=ConversationSummary, status_code=201)
-async def create_conversation(body: ConversationCreate) -> dict:
-    return await conversation_service.create_conversation(title=body.title)
+@router.post("", status_code=201)
+async def create_conversation(body: ConversationCreate) -> ApiResponse[ConversationSummary]:
+    data = await conversation_service.create_conversation(title=body.title)
+    return ApiResponse.success(data=data, message="会话创建成功。")
 
 
-@router.get("/{conversation_id}", response_model=ConversationDetail)
-async def get_conversation(conversation_id: str) -> dict:
+@router.get("/{conversation_id}")
+async def get_conversation(conversation_id: str) -> ApiResponse[ConversationDetail]:
     conversation = await conversation_service.get_conversation(conversation_id)
     if not conversation:
-        raise HTTPException(status_code=404, detail="会话不存在。")
-    return conversation
+        raise ApiError(code=ErrorCode.NOT_FOUND, message="会话不存在。", status_code=404)
+    return ApiResponse.success(data=conversation)
 
 
-@router.patch("/{conversation_id}", response_model=ConversationSummary)
-async def update_conversation(conversation_id: str, body: ConversationUpdate) -> dict:
+@router.patch("/{conversation_id}")
+async def update_conversation(
+    conversation_id: str, body: ConversationUpdate
+) -> ApiResponse[ConversationSummary]:
     conversation = await conversation_service.update_title(conversation_id, body.title)
     if not conversation:
-        raise HTTPException(status_code=404, detail="会话不存在。")
-    return conversation
+        raise ApiError(code=ErrorCode.NOT_FOUND, message="会话不存在。", status_code=404)
+    return ApiResponse.success(data=conversation, message="标题更新成功。")
 
 
-@router.delete("/{conversation_id}", status_code=204)
-async def delete_conversation(conversation_id: str) -> None:
+@router.delete("/{conversation_id}")
+async def delete_conversation(conversation_id: str) -> ApiResponse:
     deleted = await conversation_service.delete_conversation(conversation_id)
     if not deleted:
-        raise HTTPException(status_code=404, detail="会话不存在。")
+        raise ApiError(code=ErrorCode.NOT_FOUND, message="会话不存在。", status_code=404)
+    return ApiResponse.success(message="会话已删除。")
 
 
-@router.delete("/{conversation_id}/last-turn", response_model=ConversationSummary)
-async def delete_last_turn(conversation_id: str) -> dict:
+@router.delete("/{conversation_id}/last-turn")
+async def delete_last_turn(conversation_id: str) -> ApiResponse[ConversationSummary]:
     conversation = await conversation_service.get_conversation_summary(conversation_id)
     if not conversation:
-        raise HTTPException(status_code=404, detail="会话不存在。")
+        raise ApiError(code=ErrorCode.NOT_FOUND, message="会话不存在。", status_code=404)
 
     updated = await conversation_service.delete_last_turn(conversation_id)
     if not updated:
-        raise HTTPException(status_code=409, detail="当前会话没有可重试的上一轮消息。")
+        raise ApiError(
+            code=ErrorCode.CONFLICT,
+            message="当前会话没有可重试的上一轮消息。",
+            status_code=409,
+        )
 
-    return updated
+    return ApiResponse.success(data=updated, message="上一轮已删除，可以重试。")
 
 
-@router.post("/{conversation_id}/messages", response_model=MessageOut, status_code=201)
-async def save_message(conversation_id: str, body: MessageSave) -> dict:
+@router.post("/{conversation_id}/messages", status_code=201)
+async def save_message(conversation_id: str, body: MessageSave) -> ApiResponse[MessageOut]:
     conversation = await conversation_service.get_conversation_summary(conversation_id)
     if not conversation:
-        raise HTTPException(status_code=404, detail="会话不存在。")
+        raise ApiError(code=ErrorCode.NOT_FOUND, message="会话不存在。", status_code=404)
     try:
-        return await conversation_service.save_message(conversation_id, body.role, body.content)
+        data = await conversation_service.save_message(
+            conversation_id, body.role, body.content
+        )
     except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+        raise ApiError(
+            code=ErrorCode.BAD_REQUEST, message=str(exc), status_code=400
+        ) from exc
+    return ApiResponse.success(data=data, message="消息保存成功。")

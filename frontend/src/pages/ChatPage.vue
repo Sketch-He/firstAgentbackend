@@ -140,34 +140,36 @@ function handleReset() {
       />
 
       <section class="chat-shell">
-        <Header
-          :generation-label="generationLabel"
-          :generation-phase="generationPhase"
-          :is-generating="isGenerating"
-          :model-name="latestStreamMeta?.model ?? ''"
-          :service-name="serviceName"
-          :service-status="status"
-          @reset="handleReset"
-          @retry-health="checkHealth"
-        />
-        <ErrorBanner :message="chatError" @dismiss="setError('')" />
-        <MessageList
-          :generation-label="generationLabel"
-          :generation-phase="generationPhase"
-          :is-generating="isGenerating"
-          :messages="messages"
-        />
-        <Composer
-          :can-retry="canRetry"
-          :draft="draft"
-          :generation-label="generationLabel"
-          :generation-phase="generationPhase"
-          :is-generating="isGenerating"
-          @retry="retryLastTurn"
-          @stop="stopGeneration"
-          @update:draft="setDraft"
-          @submit="submitDraft"
-        />
+        <div class="chat-stage">
+          <Header
+            :generation-label="generationLabel"
+            :generation-phase="generationPhase"
+            :is-generating="isGenerating"
+            :model-name="latestStreamMeta?.model ?? ''"
+            :service-name="serviceName"
+            :service-status="status"
+            @reset="handleReset"
+            @retry-health="checkHealth"
+          />
+          <!-- <ErrorBanner :message="chatError" @dismiss="setError('')" /> -->
+          <MessageList
+            :generation-label="generationLabel"
+            :generation-phase="generationPhase"
+            :is-generating="isGenerating"
+            :messages="messages"
+          />
+          <Composer
+            :can-retry="canRetry"
+            :draft="draft"
+            :generation-label="generationLabel"
+            :generation-phase="generationPhase"
+            :is-generating="isGenerating"
+            @retry="retryLastTurn"
+            @stop="stopGeneration"
+            @update:draft="setDraft"
+            @submit="submitDraft"
+          />
+        </div>
       </section>
     </div>
   </main>

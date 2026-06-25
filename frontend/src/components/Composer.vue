@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { nextTick, onMounted, ref, watch } from "vue";
 import type { GenerationPhase } from "../types/chat";
 
 const props = defineProps<{
@@ -16,63 +17,105 @@ const emit = defineEmits<{
   retry: [];
 }>();
 
-// 保留常见聊天输入习惯：Enter 发送，Shift + Enter 换行。
+const textareaRef = ref<HTMLTextAreaElement | null>(null);
+const minTextareaHeight = 136;
+const maxTextareaHeight = minTextareaHeight * 2;
+
+function resizeTextarea() {
+  const textarea = textareaRef.value;
+
+  if (!textarea) {
+    return;
+  }
+
+  textarea.style.height = `${minTextareaHeight}px`;
+  const nextHeight = Math.min(textarea.scrollHeight, maxTextareaHeight);
+  textarea.style.height = `${Math.max(minTextareaHeight, nextHeight)}px`;
+  textarea.style.overflowY = textarea.scrollHeight > maxTextareaHeight ? "auto" : "hidden";
+}
+
 function handleKeyDown(event: KeyboardEvent) {
   if (event.key === "Enter" && !event.shiftKey) {
     event.preventDefault();
     emit("submit");
   }
 }
+
+function handleInput(event: Event) {
+  emit("update:draft", (event.target as HTMLTextAreaElement).value);
+}
+
+onMounted(() => {
+  resizeTextarea();
+});
+
+watch(
+  () => props.draft,
+  async () => {
+    await nextTick();
+    resizeTextarea();
+  }
+);
 </script>
 
 <template>
   <div class="composer-shell">
-    <label class="composer-label" for="chat-draft">
-      输入内容
-    </label>
-
-    <div class="composer-row">
-      <div class="composer-input-shell">
+    <div class="composer-card">
+      <div class="composer-input-block">
         <textarea
           id="chat-draft"
+          ref="textareaRef"
           class="composer-input"
           :value="props.draft"
           :disabled="props.isGenerating"
-          placeholder="先描述你下一步想继续搭什么，我再接着和你一起推进。"
-          rows="4"
-          @input="emit('update:draft', ($event.target as HTMLTextAreaElement).value)"
+          placeholder="发送消息"
+          rows="5"
+          @input="handleInput"
           @keydown="handleKeyDown"
         />
-        <p v-if="props.isGenerating" class="composer-hint">
-          {{ props.generationLabel }}
-        </p>
-        <p v-else class="composer-hint">
-          `Enter` 发送，`Shift + Enter` 换行
-        </p>
       </div>
 
-      <button
-        type="button"
-        :class="['primary-button', { danger: props.generationPhase === 'stopping' }]"
-        @click="props.isGenerating ? emit('stop') : emit('submit')"
-      >
-        {{
-          props.isGenerating
-            ? props.generationPhase === "stopping"
-              ? "停止中..."
-              : "停止生成"
-            : "发送"
-        }}
-      </button>
+      <div class="composer-toolbar">
+        <div class="composer-tools">
+          <button
+            v-if="props.canRetry && !props.isGenerating"
+            type="button"
+            class="composer-chip"
+            @click="emit('retry')"
+          >
+            重试
+          </button>
 
-      <button
-        v-if="props.canRetry && !props.isGenerating"
-        type="button"
-        class="secondary-button retry-button"
-        @click="emit('retry')"
-      >
-        重试
-      </button>
+          <span class="composer-hint">
+            {{ props.isGenerating ? props.generationLabel : "`Enter` 发送，`Shift + Enter` 换行" }}
+          </span>
+        </div>
+
+        <button
+          type="button"
+          :class="['composer-send-button', { stopping: props.generationPhase === 'stopping' }]"
+          :aria-label="props.isGenerating ? '停止生成' : '发送消息'"
+          @click="props.isGenerating ? emit('stop') : emit('submit')"
+        >
+          <span v-if="props.isGenerating" class="composer-send-stop">■</span>
+          <svg
+            v-else
+            class="composer-send-icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            aria-hidden="true"
+          >
+            <path
+              d="M12 18V6M12 6L7 11M12 6L17 11"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+            />
+          </svg>
+        </button>
+      </div>
     </div>
   </div>
 </template>

@@ -21,14 +21,14 @@ defineEmits<{
   <header class="shell-header">
     <div>
       <p class="eyebrow">Agent Demo</p>
-      <h1>先搭聊天壳，再演进 Agent。</h1>
+      <!-- <h1>先搭聊天壳，再演进 Agent。</h1> -->
       <p class="shell-copy">
         当前普通对话和 SSE 流式输出都已接通真实模型调用，下一步继续补强消息体验和工具能力。
       </p>
     </div>
 
     <div class="header-actions">
-      <button
+      <!-- <button
         type="button"
         class="ghost-button"
         @click="$emit('retryHealth')"
@@ -41,7 +41,7 @@ defineEmits<{
       <span v-if="modelName" class="model-pill">{{ modelName }}</span>
       <button type="button" class="secondary-button" @click="$emit('reset')">
         新对话
-      </button>
+      </button> -->
     </div>
   </header>
 </template>

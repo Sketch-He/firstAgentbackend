@@ -3,10 +3,12 @@ import json
 from collections.abc import AsyncIterator
 from typing import Any
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Request
 from fastapi.responses import StreamingResponse
 
+from app.core.exceptions import ApiError
 from app.schemas.chat import ChatRequest, ChatResponse
+from app.schemas.response import ApiResponse, ErrorCode, HTTP_STATUS_TO_CODE
 from app.services.conversation import ConversationService
 from app.services.llm import LLMService, LLMServiceError
 
@@ -15,13 +17,15 @@ llm_service = LLMService()
 conversation_service = ConversationService()
 
 
-@router.post("", response_model=ChatResponse)
-async def create_chat_reply(request: ChatRequest) -> ChatResponse:
+@router.post("")
+async def create_chat_reply(request: ChatRequest) -> ApiResponse[ChatResponse]:
     # 这个接口用于普通一次性返回。
     try:
-        return await llm_service.generate_reply(request)
+        result = await llm_service.generate_reply(request)
+        return ApiResponse.success(data=result)
     except LLMServiceError as exc:
-        raise HTTPException(status_code=exc.status_code, detail=exc.message) from exc
+        code = HTTP_STATUS_TO_CODE.get(exc.status_code, ErrorCode.LLM_SERVICE_ERROR)
+        raise ApiError(code=code, message=exc.message, status_code=exc.status_code) from exc
 
 
 def _format_sse(event: str, data: dict[str, Any]) -> str:
@@ -135,12 +139,15 @@ async def stream_chat_reply(request: Request, payload: ChatRequest) -> Streaming
         llm_service.ensure_configured()
         llm_service.validate_request(payload)
     except LLMServiceError as exc:
-        raise HTTPException(status_code=exc.status_code, detail=exc.message) from exc
+        code = HTTP_STATUS_TO_CODE.get(exc.status_code, ErrorCode.LLM_SERVICE_ERROR)
+        raise ApiError(code=code, message=exc.message, status_code=exc.status_code) from exc
 
     try:
         conversation = await conversation_service.ensure_conversation(payload.conversation_id)
     except ValueError as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
+        raise ApiError(
+            code=ErrorCode.NOT_FOUND, message=str(exc), status_code=404
+        ) from exc
 
     payload.conversation_id = conversation["id"]
 
