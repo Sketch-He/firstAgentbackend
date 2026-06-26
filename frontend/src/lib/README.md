@@ -6,7 +6,7 @@
 
 ## 当前文件
 
-- `chatApi.ts`：健康检查、普通 JSON 请求、SSE 流解析、统一 ApiResponse 解析
+- `chatApi.ts`：普通 JSON 请求、SSE 流解析、统一 ApiResponse 解析
 - `markdown.ts`：前端本地 Markdown 解析与安全 HTML 渲染辅助
 
 ## 当前关键逻辑

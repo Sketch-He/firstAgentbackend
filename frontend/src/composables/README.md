@@ -7,7 +7,6 @@
 ## 当前文件
 
 - `useChat.ts`：聊天消息状态、流式发送、错误处理、会话消息加载、重试前上一轮清理
-- `useServiceHealth.ts`：后端健康检查探活
 - `useConversation.ts`：会话列表管理（加载、局部 upsert、切换、删除）
 
 ## 当前关键逻辑

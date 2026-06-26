@@ -1,13 +1,11 @@
 <script setup lang="ts">
 import { watch } from "vue";
 import Composer from "../components/Composer.vue";
-import ErrorBanner from "../components/ErrorBanner.vue";
 import Header from "../components/Header.vue";
 import MessageList from "../components/MessageList.vue";
 import Sidebar from "../components/Sidebar.vue";
 import { useChat } from "../composables/useChat";
 import { useConversation } from "../composables/useConversation";
-import { useServiceHealth } from "../composables/useServiceHealth";
 import { getConversation } from "../lib/chatApi";
 import type { ConversationSummary } from "../types/chat";
 
@@ -30,11 +28,9 @@ const {
   canRetry,
   currentConversationId,
   draft,
-  error: chatError,
   generationLabel,
   generationPhase,
   isGenerating,
-  latestStreamMeta,
   messages,
   loadConversation,
   resetToNew,
@@ -47,8 +43,6 @@ const {
   onConversationSync: syncConversation,
   refreshConversations: loadConversations
 });
-
-const { checkHealth, serviceName, status } = useServiceHealth();
 
 let latestLoadVersion = 0;
 
@@ -113,20 +107,10 @@ async function handleDelete(id: string) {
     resetToNew();
   }
 }
-
-function handleReset() {
-  if (isGenerating.value) {
-    return;
-  }
-
-  select(null);
-  resetToNew();
-}
 </script>
 
 <template>
   <main class="app-shell">
-
     <div class="layout-shell">
       <Sidebar
         :conversations="conversations"
@@ -139,17 +123,7 @@ function handleReset() {
 
       <section class="chat-shell">
         <div class="chat-stage">
-          <Header
-            :generation-label="generationLabel"
-            :generation-phase="generationPhase"
-            :is-generating="isGenerating"
-            :model-name="latestStreamMeta?.model ?? ''"
-            :service-name="serviceName"
-            :service-status="status"
-            @reset="handleReset"
-            @retry-health="checkHealth"
-          />
-          <!-- <ErrorBanner :message="chatError" @dismiss="setError('')" /> -->
+          <!-- <Header /> -->
           <MessageList
             :generation-label="generationLabel"
             :generation-phase="generationPhase"

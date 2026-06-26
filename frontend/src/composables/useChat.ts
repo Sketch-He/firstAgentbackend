@@ -5,8 +5,7 @@ import type {
   ChatRequestMessage,
   ConversationMessage,
   ConversationSummary,
-  GenerationPhase,
-  StreamMetaEvent
+  GenerationPhase
 } from "../types/chat";
 
 const welcomeMessage: ChatMessage = {
@@ -47,7 +46,6 @@ export function useChat(options?: UseChatOptions) {
   const lastSubmittedContent = ref("");
   const currentAbort = ref<(() => void) | null>(null);
   const currentAssistantMessageId = ref("");
-  const latestStreamMeta = ref<StreamMetaEvent | null>(null);
   const currentConversationId = ref<string | null>(null);
   const canRetry = computed(() => Boolean(lastSubmittedContent.value) && !isGenerating.value);
   const generationLabel = computed(() => {
@@ -75,7 +73,6 @@ export function useChat(options?: UseChatOptions) {
     currentAssistantMessageId.value = "";
     isGenerating.value = false;
     generationPhase.value = "idle";
-    latestStreamMeta.value = null;
   }
 
   function resetToNew() {
@@ -89,7 +86,6 @@ export function useChat(options?: UseChatOptions) {
     currentAssistantMessageId.value = "";
     isGenerating.value = false;
     generationPhase.value = "idle";
-    latestStreamMeta.value = null;
   }
 
   async function submitDraft() {
@@ -119,7 +115,6 @@ export function useChat(options?: UseChatOptions) {
     generationPhase.value = "submitting";
     lastSubmittedContent.value = trimmedDraft;
     currentAssistantMessageId.value = assistantMessageId;
-    latestStreamMeta.value = null;
 
     let streamErrorMessage = "";
 
@@ -131,7 +126,6 @@ export function useChat(options?: UseChatOptions) {
         },
         {
           onMeta: (payload) => {
-            latestStreamMeta.value = payload;
             generationPhase.value = "awaiting";
 
             if (payload.conversation) {
@@ -262,7 +256,6 @@ export function useChat(options?: UseChatOptions) {
     generationPhase,
     isGenerating,
     lastSubmittedContent,
-    latestStreamMeta,
     messages,
     loadConversation,
     resetToNew,

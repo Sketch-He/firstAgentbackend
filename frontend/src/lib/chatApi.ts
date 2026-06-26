@@ -4,7 +4,6 @@ import type {
   ChatResponse,
   ConversationDetail,
   ConversationSummary,
-  HealthResponse,
   StreamDoneEvent,
   StreamErrorEvent,
   StreamMessageEvent,
@@ -114,10 +113,6 @@ interface StreamChatHandlers {
 export interface StreamChatController {
   abort: () => void;
   completed: Promise<void>;
-}
-
-export async function fetchHealth(): Promise<HealthResponse> {
-  return getJson<HealthResponse>("/health", "健康检查失败。");
 }
 
 export async function streamChatReply(

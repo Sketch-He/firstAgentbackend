@@ -47,11 +47,6 @@ export interface ChatResponse {
   meta: Record<string, unknown>;
 }
 
-export interface HealthResponse {
-  status: string;
-  service: string;
-}
-
 export interface ConversationSummary {
   id: string;
   title: string;

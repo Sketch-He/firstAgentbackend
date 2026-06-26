@@ -17,10 +17,9 @@
 
 1. 页面主入口在 `App.vue` 和 `pages/ChatPage.vue`
 2. 聊天状态集中在 `composables/useChat.ts`
-3. 服务探活逻辑在 `composables/useServiceHealth.ts`
-4. HTTP 与 SSE 请求封装在 `lib/chatApi.ts`
-5. 消息 Markdown 解析工具在 `lib/markdown.ts`
-6. 桌面端当前采用“浏览器窗口滚动消息内容 + Sidebar 独立滚动 + Header/Composer 粘住视口”的聊天布局
+3. HTTP 与 SSE 请求封装在 `lib/chatApi.ts`
+4. 消息 Markdown 解析工具在 `lib/markdown.ts`
+5. 桌面端当前采用“浏览器窗口滚动消息内容 + Sidebar 独立滚动 + Header/Composer 粘住视口”的聊天布局
 
 ## 协作约定
 

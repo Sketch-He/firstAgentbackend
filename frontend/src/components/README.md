@@ -6,8 +6,7 @@
 
 ## 当前组件
 
-- `Header.vue`: 页面头部、生成阶段、模型信息、后端服务状态
-- `ErrorBanner.vue`: 错误提示
+- `Header.vue`: 聊天区顶部的粘性留白与渐变过渡
 - `MessageBubble.vue`: 单条消息展示、基础 Markdown 渲染、代码块复制
 - `MessageList.vue`: 消息列表、流式生成阶段提示、基于浏览器窗口的自动滚动到底部
 - `Composer.vue`: 两段式输入区、底部粘性固定、textarea 自增高、发送/停止/重试交互
