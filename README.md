@@ -1,62 +1,74 @@
 # Agent Demo 项目骨架
 
-当前工作区已经拆成两个实现目录：
+当前工作区拆成两个实现目录：
 
-- `frontend/`：基于 `Vue 3 + Vite + TypeScript` 的前端聊天页面骨架
-- `python/`：基于 `FastAPI` 的 Python 服务端骨架
+- `frontend/`：基于 `Vue 3 + Vite + TypeScript` 的前端聊天页面
+- `python/`：基于 `FastAPI` 的 Python 服务端
 
-当前范围：
+## 当前范围
 
 - 一个可继续扩展的聊天产品外壳
-- 前端本地状态、基础消息列表和输入区
-- 后端路由、配置、数据模型和真实 DeepSeek 兼容聊天服务
-- 前端已经接入 SSE 流式输出
-- 前端已经支持自动滚动、停止生成、基础重试体验
-- 前端消息已经支持基础 Markdown 渲染、代码块展示与复制
-- 前端已经支持更细的生成阶段反馈
-- 对话历史持久化保存（SQLite）
-- 侧栏会话列表（新建草稿、切换、删除）
+- 前端消息列表、输入区、会话侧栏和基础 Markdown 渲染
+- 后端真实 DeepSeek 兼容聊天服务与 SSE 流式输出
+- 对话历史持久化保存
 - 为后续工具调用、Agent 编排预留结构
 
-建议的下一步：
+## 推荐上线架构
 
-1. 明确产品名称和定位文案。
-2. 根据你的定位补系统提示词、欢迎语和错误提示文案。
-3. 继续完善聊天体验，例如更完整的 Markdown 语法、高亮、移动端细节。
-4. 等本地联调稳定后再补部署文件。
+- 前端：`Vercel`
+- 后端：`Railway`
+- 域名：`Cloudflare Registrar`
+- 第一步持久化方案：`Railway Volume + SQLite`
+- 第二步持久化方案：迁移到 `Postgres`
 
-当前开发进度：
+推荐域名拆分：
 
-1. 前后端基础骨架已搭好。
-2. 后端真实 DeepSeek 兼容调用已接通。
-3. 前端 SSE 流式输出已接通。
-4. 消息区自动滚动、停止生成、基础重试体验已完成。
-5. 消息 Markdown 渲染、代码块复制、生成阶段反馈已完成。
-6. DeepSeek 与 SSE 阅读说明文档已补充。
-7. 对话历史持久化保存（SQLite）已完成。
-8. 侧栏会话列表（新建草稿、切换、删除）已完成，空草稿不会直接落库。
+- 前端：`app.example.com` 或 `www.example.com`
+- 后端：`api.example.com`
 
-下一步建议：
+## 现在做了什么
 
-1. 明确产品名称、欢迎语和系统提示词。
-2. 补更完整的 Markdown 能力，例如表格、嵌套列表和更细的代码高亮。
-3. 继续打磨生成中与错误恢复的交互细节。
-4. 如需快速理解接入链路，先阅读 `DEEPSEEK_SSE_READING_GUIDE.md`。
+1. 前端已经支持通过 `VITE_API_BASE_URL` 指向生产后端地址。
+2. 后端已经补齐 `Dockerfile` 和 `.dockerignore`，可以直接作为 Railway Web Service 部署。
+3. 后端 SQLite 路径已经改成环境变量 `SQLITE_PATH` 可配置，便于在 Railway 上挂 volume。
+4. 后端 CORS 默认本地开发端口已对齐到 `5174`，生产环境可通过 `CORS_ORIGINS_RAW` 收口。
+5. `frontend/.env.example` 和 `python/.env.example` 已补成可用于本地和上线的模板。
+6. 文档已经改成围绕 `Vercel + Railway + Cloudflare` 的部署方案。
 
-当前多会话行为说明：
+## 现在要做什么
 
-1. 点击“新对话”只会重置前端草稿态，不会立即创建空会话记录。
-2. 首条用户消息发出时，后端会懒创建会话，并在同一轮里持久化用户消息与助手回复。
-3. 停止生成时，如果已经收到部分助手内容，这段内容也会保留并入库，避免侧栏历史和聊天区不一致。
-4. 重试上一轮时，会先删除数据库中上一轮的用户/助手消息，再重新发起生成，避免重复历史。
+1. 把仓库推到 GitHub。
+2. 在 Railway 新建后端服务，服务根目录指向 `python/`。
+3. 给 Railway 服务挂一个 volume，挂载路径建议用 `/data`。
+4. 在 Railway 配置环境变量：
+   `OPENAI_API_KEY`
+   `OPENAI_BASE_URL`
+   `OPENAI_MODEL`
+   `ASSISTANT_SYSTEM_PROMPT`
+   `CORS_ORIGINS_RAW`
+   `SQLITE_PATH=/data/agent_demo.db`
+5. 在 Railway 生成公开域名，先确认 `https://<your-backend>/health` 可访问。
+6. 在 Vercel 新建前端项目，项目根目录指向 `frontend/`。
+7. 在 Vercel 配置 `VITE_API_BASE_URL=https://<your-backend-domain>`。
+8. 在 Vercel 部署后，先用平台提供的 `*.vercel.app` 域名联通前后端。
+9. 前后端都跑通后，再购买域名并绑定 `app.` / `api.` 子域名。
 
-文档维护约定：
+## 接下来要做什么
 
-1. 当前仓库中的主要源码目录都已补 `README.md`。
-2. 以后只要某个目录下的职责、结构、关键逻辑、操作方式发生变化，修改代码时必须同步更新该目录下的 `README.md`。
-3. 后续 AI 继续修改本仓库时，必须把“更新对应目录 README”视为同一项工作的一部分，而不是可选项。
+1. 把数据库从 `SQLite + Volume` 升级到 `Postgres`，避免单机 volume 成为长期瓶颈。
+2. 给后端增加最基本的鉴权和接口限流，避免公开地址被滥用。
+3. 增加日志、错误监控和最小告警。
+4. 补一份真正面向生产的环境变量清单和回滚说明。
+5. 如果要继续做 Agent，下一步再补工具调用、任务编排和可观测性。
 
-本地启动：
+## 当前部署注意事项
+
+1. 你现在的后端仍然是 SQLite，所以第一版上线更适合学习和 demo，不适合高并发生产。
+2. Railway volume 方案适合当前阶段，但它本质上仍是单实例思路。
+3. 自定义域名不用一开始就买，先用平台送的域名把链路跑通更稳。
+4. 前端一定要等后端地址稳定后，再绑定 `VITE_API_BASE_URL` 和生产 CORS。
+
+## 本地启动
 
 ```bash
 # 前端
@@ -73,3 +85,9 @@ python -m venv .venv
 pip install -e .
 uvicorn app.main:app --reload --port 8001
 ```
+
+## 文档维护约定
+
+1. 当前仓库中的主要源码目录都已补 `README.md`。
+2. 以后只要某个目录下的职责、结构、关键逻辑、操作方式发生变化，修改代码时必须同步更新该目录下的 `README.md`。
+3. 后续 AI 继续修改本仓库时，必须把“更新对应目录 README”视为同一项工作的一部分，而不是可选项。

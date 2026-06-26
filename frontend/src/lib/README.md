@@ -17,9 +17,10 @@
 4. SSE 使用 `fetch` + `ReadableStream` + 自定义事件解析，不依赖浏览器原生 `EventSource`。
 5. 这样做的原因是 `POST /api/chat/stream` 需要携带请求体，原生 `EventSource` 不适合当前场景。
 6. 当前本地开发默认通过 Vite 代理转发到 `127.0.0.1:8001`，用于避开旧的 `8000` 端口冲突。
-7. 流式请求当前支持 `AbortController` 中断，供前端实现”停止生成”。
-8. 会话相关接口包括列表、详情、删除、重试前删除上一轮；真正的 assistant 持久化已经收口到后端流式接口中。
-9. Markdown 渲染当前不依赖第三方库，先覆盖标题、列表、引用、链接、行内代码和 fenced code block。
+7. 生产环境通过 `VITE_API_BASE_URL` 指向独立后端域名；未配置时默认走同源相对路径。
+8. 流式请求当前支持 `AbortController` 中断，供前端实现“停止生成”。
+9. 会话相关接口包括列表、详情、删除、重试前删除上一轮；真正的 assistant 持久化已经收口到后端流式接口中。
+10. Markdown 渲染当前不依赖第三方库，先覆盖标题、列表、引用、链接、行内代码和 fenced code block。
 
 ## 协作约定
 

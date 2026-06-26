@@ -1,4 +1,5 @@
 from functools import lru_cache
+from pathlib import Path
 
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -14,7 +15,8 @@ class Settings(BaseSettings):
 
     app_name: str = "Agent Demo API"
     api_prefix: str = "/api"
-    cors_origins_raw: str = "http://localhost:5173,http://127.0.0.1:5173"
+    cors_origins_raw: str = "http://localhost:5174,http://127.0.0.1:5174"
+    sqlite_path: str = "agent_demo.db"
     # API Key 只从环境变量读取，不把真实密钥写进源码。
     openai_api_key: str = Field(default="", repr=False)
     # DeepSeek 的 OpenAI 兼容接口地址。
@@ -35,6 +37,14 @@ class Settings(BaseSettings):
     @property
     def cors_origins(self) -> list[str]:
         return [item.strip() for item in self.cors_origins_raw.split(",") if item.strip()]
+
+    @property
+    def resolved_sqlite_path(self) -> Path:
+        sqlite_path = Path(self.sqlite_path).expanduser()
+        if sqlite_path.is_absolute():
+            return sqlite_path
+
+        return Path(__file__).resolve().parents[2] / sqlite_path
 
 
 @lru_cache

@@ -2,7 +2,7 @@ from pathlib import Path
 
 import aiosqlite
 
-DB_PATH = Path(__file__).resolve().parents[2] / "agent_demo.db"
+from app.core.config import get_settings
 
 SCHEMA_SQL = """
 CREATE TABLE IF NOT EXISTS conversations (
@@ -29,8 +29,15 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_messages_conversation_sort_order
 """
 
 
+def get_db_path() -> Path:
+    return get_settings().resolved_sqlite_path
+
+
 async def get_db() -> aiosqlite.Connection:
-    db = await aiosqlite.connect(str(DB_PATH))
+    db_path = get_db_path()
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+
+    db = await aiosqlite.connect(str(db_path))
     db.row_factory = aiosqlite.Row
     await db.execute("PRAGMA journal_mode=WAL")
     await db.execute("PRAGMA foreign_keys=ON")
