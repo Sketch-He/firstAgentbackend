@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { nextTick, ref, watch } from "vue";
+import { nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import type { GenerationPhase } from "../types/chat";
 import type { ChatMessage } from "../types/chat";
 import MessageBubble from "./MessageBubble.vue";
@@ -11,31 +11,38 @@ const props = defineProps<{
   messages: ChatMessage[];
 }>();
 
-const listRef = ref<HTMLElement | null>(null);
 const shouldAutoScroll = ref(true);
 
-function scrollToBottom() {
-  const element = listRef.value;
-
-  if (!element) {
-    return;
-  }
-
-  element.scrollTop = element.scrollHeight;
+function getScrollRoot() {
+  return document.scrollingElement ?? document.documentElement;
 }
 
-function handleScroll() {
-  const element = listRef.value;
+function scrollToBottom() {
+  window.scrollTo({
+    top: getScrollRoot().scrollHeight
+  });
+}
 
-  if (!element) {
-    return;
-  }
-
+function handleWindowScroll() {
   const distanceToBottom =
-    element.scrollHeight - element.scrollTop - element.clientHeight;
+    getScrollRoot().scrollHeight - (window.scrollY + window.innerHeight);
 
   shouldAutoScroll.value = distanceToBottom < 80;
 }
+
+onMounted(() => {
+  window.addEventListener("scroll", handleWindowScroll, { passive: true });
+
+  void nextTick().then(() => {
+    if (shouldAutoScroll.value) {
+      scrollToBottom();
+    }
+  });
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener("scroll", handleWindowScroll);
+});
 
 watch(
   () => [
@@ -56,7 +63,7 @@ watch(
 
 <template>
   <section class="message-panel">
-    <div ref="listRef" class="message-list" @scroll="handleScroll">
+    <div class="message-list">
       <MessageBubble
         v-for="message in messages"
         :key="message.id"

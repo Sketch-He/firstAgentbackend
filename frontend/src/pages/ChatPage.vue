@@ -126,8 +126,6 @@ function handleReset() {
 
 <template>
   <main class="app-shell">
-    <div class="glow glow-left" />
-    <div class="glow glow-right" />
 
     <div class="layout-shell">
       <Sidebar

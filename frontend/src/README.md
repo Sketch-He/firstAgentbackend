@@ -6,12 +6,12 @@
 
 ## 当前结构
 
-- `components/`：通用界面组件
-- `composables/`：组合式状态与业务逻辑
-- `lib/`：接口调用与底层工具封装
-- `pages/`：页面级组件
-- `styles/`：全局样式
-- `types/`：共享类型定义
+- `components/`: 通用界面组件
+- `composables/`: 组合式状态与业务逻辑
+- `lib/`: 接口调用与底层工具封装
+- `pages/`: 页面级组件
+- `styles/`: 全局样式
+- `types/`: 共享类型定义
 
 ## 当前关键逻辑
 
@@ -20,8 +20,9 @@
 3. 服务探活逻辑在 `composables/useServiceHealth.ts`
 4. HTTP 与 SSE 请求封装在 `lib/chatApi.ts`
 5. 消息 Markdown 解析工具在 `lib/markdown.ts`
+6. 桌面端当前采用“浏览器窗口滚动消息内容 + Sidebar 独立滚动 + Header/Composer 粘住视口”的聊天布局
 
 ## 协作约定
 
-1. 只要 `src/` 下的目录划分、核心状态流、页面入口、接口组织方式变化，必须同步更新本文件。
-2. 后续 AI 在新增新的核心模块时，需要先判断是否应新增子目录 README。
+1. 只要 `src/` 下的目录划分、核心状态流、页面入口、接口组织方式变化，必须同步更新本文档。
+2. 后续 AI 在新增新的核心模块时，需要先判断是否应该补对应子目录 `README.md`。
