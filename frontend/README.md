@@ -23,6 +23,7 @@
 2. 本地开发默认仍走 Vite 代理，代理目标是 `127.0.0.1:8001`。
 3. `frontend/.env.example` 已补齐本地直连示例和生产示例。
 4. 生产环境通过 `server.mjs` 提供静态文件服务和 SPA 路由回退，直接适配 Railway 注入的 `PORT`。
+5. `frontend/railway.json` 显式固定了 Railway 的构建命令、启动命令和健康检查路径，避免控制台默认值漂移。
 
 ## 现在要做什么
 
