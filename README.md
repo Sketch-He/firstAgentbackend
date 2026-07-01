@@ -15,7 +15,7 @@
 
 ## 推荐上线架构
 
-- 前端：`Vercel`
+- 前端：`Railway`
 - 后端：`Railway`
 - 域名：`Cloudflare Registrar`
 - 第一步持久化方案：`Railway Volume + SQLite`
@@ -33,7 +33,7 @@
 3. 后端 SQLite 路径已经改成环境变量 `SQLITE_PATH` 可配置，便于在 Railway 上挂 volume。
 4. 后端 CORS 默认本地开发端口已对齐到 `5174`，生产环境可通过 `CORS_ORIGINS_RAW` 收口。
 5. `frontend/.env.example` 和 `python/.env.example` 已补成可用于本地和上线的模板。
-6. 文档已经改成围绕 `Vercel + Railway + Cloudflare` 的部署方案。
+6. 文档已经改成围绕 `Railway + Railway + Cloudflare` 的部署方案。
 
 ## 现在要做什么
 
@@ -48,9 +48,9 @@
    `CORS_ORIGINS_RAW`
    `SQLITE_PATH=/data/agent_demo.db`
 5. 在 Railway 生成公开域名，先确认 `https://<your-backend>/health` 可访问。
-6. 在 Vercel 新建前端项目，项目根目录指向 `frontend/`。
-7. 在 Vercel 配置 `VITE_API_BASE_URL=https://<your-backend-domain>`。
-8. 在 Vercel 部署后，先用平台提供的 `*.vercel.app` 域名联通前后端。
+6. 在 Railway 新建前端服务，服务根目录指向 `frontend/`。
+7. 在 Railway 配置 `VITE_API_BASE_URL=https://<your-backend-domain>`。
+8. 部署前端服务后，先用 Railway 提供的公开域名联通前后端。
 9. 前后端都跑通后，再购买域名并绑定 `app.` / `api.` 子域名。
 
 ## 接下来要做什么
@@ -67,6 +67,7 @@
 2. Railway volume 方案适合当前阶段，但它本质上仍是单实例思路。
 3. 自定义域名不用一开始就买，先用平台送的域名把链路跑通更稳。
 4. 前端一定要等后端地址稳定后，再绑定 `VITE_API_BASE_URL` 和生产 CORS。
+5. 前端在 Railway 上本质是一个静态产物加 Node 进程，首版上线够用，但不是极致静态分发方案。
 
 ## 本地启动
 

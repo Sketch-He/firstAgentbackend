@@ -25,7 +25,7 @@
 
 ## 现在要做什么
 
-1. 在 Railway 把 `CORS_ORIGINS_RAW` 配成真实前端域名。
+1. 在 Railway 把 `CORS_ORIGINS_RAW` 配成真实前端域名，可以是 Railway 域名或自定义域名。
 2. 在 Railway 把 `SQLITE_PATH` 配成挂载 volume 内的绝对路径。
 3. 上线后确认 `/health`、会话列表和流式聊天都能正确访问数据库文件。
 

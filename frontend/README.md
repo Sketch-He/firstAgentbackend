@@ -2,7 +2,7 @@
 
 ## 目录职责
 
-这个目录承载前端应用，技术栈为 `Vue 3 + Vite + TypeScript`。当前推荐部署目标是 `Vercel`。
+这个目录承载前端应用，技术栈为 `Vue 3 + Vite + TypeScript`。当前推荐部署目标是 `Railway`。
 
 ## 当前包含内容
 
@@ -22,20 +22,21 @@
 1. 前端已经可以通过 `VITE_API_BASE_URL` 指向独立后端域名。
 2. 本地开发默认仍走 Vite 代理，代理目标是 `127.0.0.1:8001`。
 3. `frontend/.env.example` 已补齐本地直连示例和生产示例。
-4. 当前不需要额外的 `vercel.json`，Vercel 可直接识别 Vite 项目。
+4. 生产环境通过 `server.mjs` 提供静态文件服务和 SPA 路由回退，直接适配 Railway 注入的 `PORT`。
 
 ## 现在要做什么
 
-1. 在 Vercel 新建项目。
-2. 把项目根目录设置为 `frontend/`。
-3. 设置环境变量 `VITE_API_BASE_URL=https://<your-backend-domain>`。
-4. 完成首次部署后，用 `*.vercel.app` 地址联调后端。
+1. 在 Railway 新建一个前端服务。
+2. 把服务根目录设置为 `frontend/`。
+3. 在 Railway 配置环境变量 `VITE_API_BASE_URL=https://<your-backend-domain>`。
+4. 触发部署，确认 Railway 完成 `npm run build` 并通过 `npm start` 启动前端服务。
+5. 打开 Railway 分配的公开域名，确认首页和 `/health` 可访问。
 
 ## 接下来要做什么
 
-1. 等 Railway 后端域名稳定后，再绑定正式前端域名。
-2. 如果未来接入登录态、埋点或监控，再按 Vercel 环境分组补更多环境变量。
-3. 如果未来出现多页面、SSR 或边缘逻辑需求，再决定是否引入额外平台配置文件。
+1. 等 Railway 前后端域名都稳定后，再绑定正式前端域名。
+2. 如果未来接入登录态、埋点或监控，再按 Railway 环境分组补更多环境变量。
+3. 如果未来出现 SSR、边缘逻辑或全球加速诉求，再评估是否切换到更适合前端分发的平台。
 
 ## 常用操作
 
@@ -43,6 +44,7 @@
 npm install
 npm run dev
 npm run build
+npm start
 ```
 
 ## 协作约定
