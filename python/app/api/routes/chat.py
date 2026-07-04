@@ -3,7 +3,7 @@ import json
 from collections.abc import AsyncIterator
 from typing import Any
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Header, Request
 from fastapi.responses import StreamingResponse
 
 from app.core.exceptions import ApiError
@@ -15,6 +15,12 @@ from app.services.llm import LLMService, LLMServiceError
 router = APIRouter(prefix="/chat", tags=["chat"])
 llm_service = LLMService()
 conversation_service = ConversationService()
+
+
+def _get_user_id(x_user_id: str = Header(default="")) -> str:
+    if not x_user_id:
+        raise ApiError(code=ErrorCode.BAD_REQUEST, message="缺少 X-User-Id 请求头。", status_code=400)
+    return x_user_id
 
 
 @router.post("")
@@ -49,26 +55,26 @@ def _parse_sse_event(chunk: str) -> tuple[str, dict[str, Any]] | None:
     return event_name, json.loads(json_payload)
 
 
-async def _persist_assistant_reply(conversation_id: str, assistant_chunks: list[str]) -> dict | None:
+async def _persist_assistant_reply(user_id: str, conversation_id: str, assistant_chunks: list[str]) -> dict | None:
     assistant_content = "".join(assistant_chunks).strip()
     if assistant_content:
         try:
-            await conversation_service.save_message(conversation_id, "assistant", assistant_content)
+            await conversation_service.save_message(user_id, conversation_id, "assistant", assistant_content)
         except ValueError:
             pass
 
-    return await conversation_service.get_conversation_summary(conversation_id)
+    return await conversation_service.get_conversation_summary(user_id, conversation_id)
 
 
-async def _stream_and_persist(payload: ChatRequest, conversation: dict) -> AsyncIterator[str]:
+async def _stream_and_persist(user_id: str, payload: ChatRequest, conversation: dict) -> AsyncIterator[str]:
     assistant_chunks: list[str] = []
     conversation_id = conversation["id"]
     user_messages = [message for message in payload.messages if message.role == "user"]
 
     if user_messages:
         last_user_message = user_messages[-1]
-        await conversation_service.save_message(conversation_id, "user", last_user_message.content)
-        conversation = await conversation_service.auto_title_from_message(conversation_id, last_user_message.content) or conversation
+        await conversation_service.save_message(user_id, conversation_id, "user", last_user_message.content)
+        conversation = await conversation_service.auto_title_from_message(user_id, conversation_id, last_user_message.content) or conversation
 
     yield _format_sse(
         "meta",
@@ -99,7 +105,7 @@ async def _stream_and_persist(payload: ChatRequest, conversation: dict) -> Async
                 continue
 
             if event_name == "done":
-                updated_conversation = await _persist_assistant_reply(conversation_id, assistant_chunks)
+                updated_conversation = await _persist_assistant_reply(user_id, conversation_id, assistant_chunks)
                 if updated_conversation:
                     data["conversation"] = updated_conversation
                 yield _format_sse("done", data)
@@ -107,14 +113,14 @@ async def _stream_and_persist(payload: ChatRequest, conversation: dict) -> Async
 
             yield chunk
     except asyncio.CancelledError:
-        await _persist_assistant_reply(conversation_id, assistant_chunks)
+        await _persist_assistant_reply(user_id, conversation_id, assistant_chunks)
         raise
     except Exception:
         yield _format_sse(
             "error",
             {"message": "流式生成过程中发生未预期错误。", "status_code": 502},
         )
-        updated_conversation = await _persist_assistant_reply(conversation_id, assistant_chunks)
+        updated_conversation = await _persist_assistant_reply(user_id, conversation_id, assistant_chunks)
         yield _format_sse(
             "done",
             {
@@ -125,7 +131,8 @@ async def _stream_and_persist(payload: ChatRequest, conversation: dict) -> Async
 
 
 @router.post("/stream")
-async def stream_chat_reply(request: Request, payload: ChatRequest) -> StreamingResponse:
+async def stream_chat_reply(request: Request, payload: ChatRequest, x_user_id: str = Header()) -> StreamingResponse:
+    user_id = _get_user_id(x_user_id)
     print(
         ">>> [DEBUG] /chat/stream 被访问了",
         {
@@ -143,7 +150,7 @@ async def stream_chat_reply(request: Request, payload: ChatRequest) -> Streaming
         raise ApiError(code=code, message=exc.message, status_code=exc.status_code) from exc
 
     try:
-        conversation = await conversation_service.ensure_conversation(payload.conversation_id)
+        conversation = await conversation_service.ensure_conversation(user_id, payload.conversation_id)
     except ValueError as exc:
         raise ApiError(
             code=ErrorCode.NOT_FOUND, message=str(exc), status_code=404
@@ -159,7 +166,7 @@ async def stream_chat_reply(request: Request, payload: ChatRequest) -> Streaming
     }
 
     return StreamingResponse(
-        _stream_and_persist(payload, conversation),
+        _stream_and_persist(user_id, payload, conversation),
         media_type="text/event-stream",
         headers=headers,
     )

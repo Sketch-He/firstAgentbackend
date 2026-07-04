@@ -9,6 +9,7 @@ import type {
   StreamMessageEvent,
   StreamMetaEvent
 } from "../types/chat";
+import { getUserId } from "../utils/cookie";
 
 const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/$/, "");
 
@@ -75,7 +76,9 @@ async function unwrapResponse<T>(response: Response, fallbackMessage: string): P
 }
 
 async function getJson<TResponse>(path: string, fallbackMessage: string): Promise<TResponse> {
-  const response = await fetch(`${apiBaseUrl}${path}`);
+  const response = await fetch(`${apiBaseUrl}${path}`, {
+    headers: { "X-User-Id": getUserId() }
+  });
   return unwrapResponse<TResponse>(response, fallbackMessage);
 }
 
@@ -85,14 +88,15 @@ async function sendJson<TResponse>(
   payload: unknown | undefined,
   fallbackMessage: string
 ): Promise<TResponse> {
+  const headers: Record<string, string> = {
+    "X-User-Id": getUserId()
+  };
+  if (payload !== undefined) {
+    headers["Content-Type"] = "application/json";
+  }
   const response = await fetch(`${apiBaseUrl}${path}`, {
     method,
-    headers:
-      payload === undefined
-        ? undefined
-        : {
-            "Content-Type": "application/json"
-          },
+    headers,
     body: payload === undefined ? undefined : JSON.stringify(payload)
   });
 
@@ -127,7 +131,8 @@ export async function streamChatReply(
       headers: {
         "Content-Type": "application/json",
         Accept: "text/event-stream",
-        "X-Agent-Debug": "frontend-sse"
+        "X-Agent-Debug": "frontend-sse",
+        "X-User-Id": getUserId()
       },
       body: JSON.stringify(payload),
       signal: abortController.signal

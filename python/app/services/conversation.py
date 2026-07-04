@@ -17,26 +17,27 @@ def _normalize_title(title: str) -> str:
 
 
 class ConversationService:
-    async def list_conversations(self) -> list[dict]:
+    async def list_conversations(self, user_id: str) -> list[dict]:
         db = await get_db()
         try:
             cursor = await db.execute(
-                "SELECT id, title, created_at, updated_at FROM conversations ORDER BY updated_at DESC"
+                "SELECT id, title, created_at, updated_at FROM conversations WHERE user_id = ? ORDER BY updated_at DESC",
+                (user_id,)
             )
             rows = await cursor.fetchall()
             return [dict(row) for row in rows]
         finally:
             await db.close()
 
-    async def create_conversation(self, title: str = DEFAULT_CONVERSATION_TITLE) -> dict:
+    async def create_conversation(self, user_id: str, title: str = DEFAULT_CONVERSATION_TITLE) -> dict:
         conversation_id = str(uuid.uuid4())
         now = _utc_now()
         normalized_title = _normalize_title(title)
         db = await get_db()
         try:
             await db.execute(
-                "INSERT INTO conversations (id, title, created_at, updated_at) VALUES (?, ?, ?, ?)",
-                (conversation_id, normalized_title, now, now),
+                "INSERT INTO conversations (id, user_id, title, created_at, updated_at) VALUES (?, ?, ?, ?, ?)",
+                (conversation_id, user_id, normalized_title, now, now),
             )
             await db.commit()
             return {
@@ -48,26 +49,26 @@ class ConversationService:
         finally:
             await db.close()
 
-    async def ensure_conversation(self, conversation_id: str | None) -> dict:
+    async def ensure_conversation(self, user_id: str, conversation_id: str | None) -> dict:
         if conversation_id:
-            conversation = await self.get_conversation_summary(conversation_id)
+            conversation = await self.get_conversation_summary(user_id, conversation_id)
             if conversation is None:
                 raise ValueError("会话不存在。")
             return conversation
 
-        return await self.create_conversation()
+        return await self.create_conversation(user_id)
 
-    async def get_conversation_summary(self, conversation_id: str) -> dict | None:
+    async def get_conversation_summary(self, user_id: str, conversation_id: str) -> dict | None:
         db = await get_db()
         try:
-            return await self._get_conversation_summary_with_db(db, conversation_id)
+            return await self._get_conversation_summary_with_db(db, user_id, conversation_id)
         finally:
             await db.close()
 
-    async def get_conversation(self, conversation_id: str) -> dict | None:
+    async def get_conversation(self, user_id: str, conversation_id: str) -> dict | None:
         db = await get_db()
         try:
-            conversation = await self._get_conversation_summary_with_db(db, conversation_id)
+            conversation = await self._get_conversation_summary_with_db(db, user_id, conversation_id)
             if not conversation:
                 return None
 
@@ -81,31 +82,31 @@ class ConversationService:
         finally:
             await db.close()
 
-    async def update_title(self, conversation_id: str, title: str) -> dict | None:
+    async def update_title(self, user_id: str, conversation_id: str, title: str) -> dict | None:
         db = await get_db()
         try:
             cursor = await db.execute(
-                "UPDATE conversations SET title = ?, updated_at = ? WHERE id = ?",
-                (_normalize_title(title), _utc_now(), conversation_id),
+                "UPDATE conversations SET title = ?, updated_at = ? WHERE id = ? AND user_id = ?",
+                (_normalize_title(title), _utc_now(), conversation_id, user_id),
             )
             if cursor.rowcount <= 0:
                 await db.rollback()
                 return None
             await db.commit()
-            return await self._get_conversation_summary_with_db(db, conversation_id)
+            return await self._get_conversation_summary_with_db(db, user_id, conversation_id)
         finally:
             await db.close()
 
-    async def delete_conversation(self, conversation_id: str) -> bool:
+    async def delete_conversation(self, user_id: str, conversation_id: str) -> bool:
         db = await get_db()
         try:
-            cursor = await db.execute("DELETE FROM conversations WHERE id = ?", (conversation_id,))
+            cursor = await db.execute("DELETE FROM conversations WHERE id = ? AND user_id = ?", (conversation_id, user_id))
             await db.commit()
             return cursor.rowcount > 0
         finally:
             await db.close()
 
-    async def save_message(self, conversation_id: str, role: ChatRole, content: str) -> dict:
+    async def save_message(self, user_id: str, conversation_id: str, role: ChatRole, content: str) -> dict:
         normalized_content = content.strip()
         if not normalized_content:
             raise ValueError("消息内容不能为空。")
@@ -115,7 +116,7 @@ class ConversationService:
         db = await get_db()
         try:
             await db.execute("BEGIN IMMEDIATE")
-            conversation = await self._get_conversation_summary_with_db(db, conversation_id)
+            conversation = await self._get_conversation_summary_with_db(db, user_id, conversation_id)
             if conversation is None:
                 await db.rollback()
                 raise ValueError("会话不存在。")
@@ -145,12 +146,12 @@ class ConversationService:
         finally:
             await db.close()
 
-    async def auto_title_from_message(self, conversation_id: str, content: str) -> dict | None:
+    async def auto_title_from_message(self, user_id: str, conversation_id: str, content: str) -> dict | None:
         db = await get_db()
         try:
             cursor = await db.execute(
-                "SELECT title FROM conversations WHERE id = ?",
-                (conversation_id,),
+                "SELECT title FROM conversations WHERE id = ? AND user_id = ?",
+                (conversation_id, user_id),
             )
             row = await cursor.fetchone()
             if row is None:
@@ -167,15 +168,15 @@ class ConversationService:
                 )
                 await db.commit()
 
-            return await self._get_conversation_summary_with_db(db, conversation_id)
+            return await self._get_conversation_summary_with_db(db, user_id, conversation_id)
         finally:
             await db.close()
 
-    async def delete_last_turn(self, conversation_id: str) -> dict | None:
+    async def delete_last_turn(self, user_id: str, conversation_id: str) -> dict | None:
         db = await get_db()
         try:
             await db.execute("BEGIN IMMEDIATE")
-            conversation = await self._get_conversation_summary_with_db(db, conversation_id)
+            conversation = await self._get_conversation_summary_with_db(db, user_id, conversation_id)
             if conversation is None:
                 await db.rollback()
                 return None
@@ -210,14 +211,14 @@ class ConversationService:
                 (next_title, _utc_now(), conversation_id),
             )
             await db.commit()
-            return await self._get_conversation_summary_with_db(db, conversation_id)
+            return await self._get_conversation_summary_with_db(db, user_id, conversation_id)
         finally:
             await db.close()
 
-    async def _get_conversation_summary_with_db(self, db, conversation_id: str) -> dict | None:
+    async def _get_conversation_summary_with_db(self, db, user_id: str, conversation_id: str) -> dict | None:
         cursor = await db.execute(
-            "SELECT id, title, created_at, updated_at FROM conversations WHERE id = ?",
-            (conversation_id,),
+            "SELECT id, title, created_at, updated_at FROM conversations WHERE id = ? AND user_id = ?",
+            (conversation_id, user_id),
         )
         row = await cursor.fetchone()
         return dict(row) if row else None

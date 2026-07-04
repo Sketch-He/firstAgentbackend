@@ -7,6 +7,7 @@ from app.core.config import get_settings
 SCHEMA_SQL = """
 CREATE TABLE IF NOT EXISTS conversations (
     id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL DEFAULT '',
     title TEXT NOT NULL DEFAULT '新对话',
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
@@ -48,6 +49,13 @@ async def init_db() -> None:
     db = await get_db()
     try:
         await db.executescript(SCHEMA_SQL)
+        # 兼容旧数据库：尝试添加 user_id 字段，已存在则忽略
+        try:
+            await db.execute("ALTER TABLE conversations ADD COLUMN user_id TEXT NOT NULL DEFAULT ''")
+        except Exception:
+            pass
+        # 确保索引存在（新旧数据库都需要）
+        await db.execute("CREATE INDEX IF NOT EXISTS idx_conversations_user_id ON conversations(user_id)")
         await db.commit()
     finally:
         await db.close()
