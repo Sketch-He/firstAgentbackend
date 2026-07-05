@@ -7,10 +7,12 @@
 ## 当前组件
 
 - `Header.vue`: 聊天区顶部的粘性留白与渐变过渡
-- `MessageBubble.vue`: 单条消息展示、基础 Markdown 渲染、代码块复制
+- `MessageBubble.vue`: 单条消息展示、基础 Markdown 渲染、代码块复制、来源引用展示
 - `MessageList.vue`: 消息列表、流式生成阶段提示、基于浏览器窗口的自动滚动到底部
-- `Composer.vue`: 两段式输入区、底部粘性固定、textarea 自增高、发送/停止/重试交互
-- `Sidebar.vue`: 会话历史侧栏、新建/切换/删除会话、时间展示
+- `Composer.vue`: 两段式输入区、底部粘性固定、textarea 自增高、发送/停止/重试交互、RAG 模式切换
+- `Sidebar.vue`: 会话历史侧栏、新建/切换/删除会话、时间展示、知识库入口
+- `KnowledgePanel.vue`: 知识库面板、文档上传（拖拽/点击）、文档列表、删除/重试操作
+- `SourceBubble.vue`: RAG 检索来源引用展示、折叠/展开详情
 
 ## 设计原则
 

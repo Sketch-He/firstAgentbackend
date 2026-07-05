@@ -6,19 +6,23 @@
 
 ## 当前文件
 
-- `useChat.ts`：聊天消息状态、流式发送、错误处理、会话消息加载、重试前上一轮清理
+- `useChat.ts`：聊天消息状态、流式发送、错误处理、会话消息加载、重试前上一轮清理、RAG 模式支持、来源引用跟踪
 - `useConversation.ts`：会话列表管理（加载、局部 upsert、切换、删除）
+- `useDocuments.ts`：文档管理（加载、上传、删除、重试）、文档状态跟踪
 
 ## 当前关键逻辑
 
 1. `useChat.ts` 消息由后端 API 持久化，不再使用 localStorage。
-2. 点击“新对话”时只重置前端状态，真正的会话记录由后端在首条用户消息到达时懒创建。
+2. 点击”新对话”时只重置前端状态，真正的会话记录由后端在首条用户消息到达时懒创建。
 3. 发送消息时，前端通过 SSE 从 `/api/chat/stream` 增量接收助手回复，并从 `meta/done` 事件里同步会话摘要。
 4. 在流式过程中，前端会先插入一个空的 assistant 消息，再逐段拼接。
 5. 停止生成或流式报错时，如果已经收到部分 assistant 内容，前端会保留这段内容，和数据库保持一致。
 6. 一键重试前会先调用后端删除上一轮持久化消息，再重新提交，避免侧栏历史重复。
 7. 当前会区分 `submitting`、`awaiting`、`streaming`、`stopping` 等生成阶段，用于 UI 反馈。
 8. `useConversation.ts` 在组件挂载时自动加载会话列表，并支持根据服务端返回的摘要做局部更新和重排。
+9. `useChat.ts` 支持 RAG 模式（`auto`/`always`/`never`），根据模式选择调用 `/api/chat/rag` 或 `/api/chat/stream`。
+10. `useChat.ts` 通过 `messageSources` 跟踪每条助手消息的来源引用，供 `SourceBubble` 组件展示。
+11. `useDocuments.ts` 管理文档生命周期，支持上传、删除、重试操作，并跟踪上传状态。
 
 ## 协作约定
 

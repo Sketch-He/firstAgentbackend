@@ -19,7 +19,9 @@
 2. 聊天状态集中在 `composables/useChat.ts`
 3. HTTP 与 SSE 请求封装在 `lib/chatApi.ts`
 4. 消息 Markdown 解析工具在 `lib/markdown.ts`
-5. 桌面端当前采用“浏览器窗口滚动消息内容 + Sidebar 独立滚动 + Header/Composer 粘住视口”的聊天布局
+5. 桌面端当前采用”浏览器窗口滚动消息内容 + Sidebar 独立滚动 + Header/Composer 粘住视口”的聊天布局
+6. 文档管理状态集中在 `composables/useDocuments.ts`
+7. RAG 来源引用通过 `messageSources` 跟踪，由 `SourceBubble` 组件展示
 
 ## 协作约定
 

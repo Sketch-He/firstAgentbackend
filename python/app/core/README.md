@@ -22,6 +22,9 @@
 6. `messages.role` 和 `messages.content` 在建表层增加了基本约束，`conversation_id + sort_order` 增加了唯一索引。
 7. 数据库在应用启动时通过 `lifespan` 自动初始化建表。
 8. `exceptions.py` 统一把错误收口成 `{ code, message, data }` 返回格式。
+9. RAG 相关配置包括：`EMBEDDING_API_KEY`、`EMBEDDING_BASE_URL`、`EMBEDDING_MODEL`、`CHROMA_PERSIST_DIR`、`RAG_CHUNK_SIZE`、`RAG_CHUNK_OVERLAP`、`RAG_TOP_K`、`MAX_UPLOAD_SIZE_MB`。
+10. `CHROMA_PERSIST_DIR` 支持相对路径和绝对路径，相对路径自动解析到 `python/` 目录下。
+11. `EMBEDDING_API_KEY` 未配置时会回退到 `OPENAI_API_KEY`，`EMBEDDING_BASE_URL` 同理。
 
 ## 现在要做什么
 

@@ -9,6 +9,7 @@
 - `chat.py`：聊天请求（含可选 `conversation_id`）、聊天响应、健康检查响应
 - `conversation.py`：会话创建/更新请求、会话摘要、单条消息输出、会话详情（含消息列表）
 - `response.py`：统一 API 响应包装 `ApiResponse[T]` 和业务错误码 `ErrorCode`
+- `document.py`：文档输出模型、文档列表响应、RAG 聊天请求、RAG 来源模型
 
 ## 统一响应格式
 

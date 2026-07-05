@@ -9,13 +9,16 @@
 - `api/`：路由入口与 HTTP 层
 - `core/`：配置与基础能力
 - `schemas/`：Pydantic 数据模型
-- `services/`：聊天服务与后续 Agent 编排
+- `services/`：聊天服务、文档服务、RAG 服务与后续 Agent 编排
 
 ## 当前关键逻辑
 
 1. 普通聊天请求走 `/api/chat`
 2. 流式聊天请求走 `/api/chat/stream`
-3. 真实 DeepSeek 兼容调用在 `services/llm.py`
+3. RAG 聊天请求走 `/api/chat/rag`
+4. 文档管理走 `/api/documents/*`
+5. 真实 DeepSeek 兼容调用在 `services/llm.py`
+6. 文档解析与向量化在 `services/document.py` 和 `services/vector_store.py`
 
 ## 协作约定
 

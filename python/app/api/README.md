@@ -6,7 +6,7 @@
 
 ## 当前结构
 
-- `router.py`：API 路由聚合入口
+- `router.py`：API 路由聚合入口（chat、conversations、documents）
 - `routes/`：具体路由模块
 
 ## 协作约定

@@ -4,11 +4,14 @@
 
 ## 当前分层
 
-- `app/api/`：接口路由层（chat、conversations、health）
+- `app/api/`：接口路由层（chat、conversations、health、documents）
 - `app/schemas/`：请求和响应模型
 - `app/services/llm.py`：DeepSeek 兼容聊天调用与流式输出入口
 - `app/services/agent.py`：后续 Agent 编排入口
 - `app/services/conversation.py`：会话 CRUD、上一轮删除、消息持久化
+- `app/services/document.py`：文档解析、分块、文档记录 CRUD
+- `app/services/vector_store.py`：ChromaDB 向量存储与检索
+- `app/services/rag.py`：RAG 检索增强生成服务
 - `app/core/config.py`：环境变量和基础配置
 - `app/core/database.py`：SQLite 数据库连接管理与建表
 

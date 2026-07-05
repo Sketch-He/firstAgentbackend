@@ -6,7 +6,7 @@
 
 ## 当前文件
 
-- `chatApi.ts`：普通 JSON 请求、SSE 流解析、统一 ApiResponse 解析
+- `chatApi.ts`：普通 JSON 请求、SSE 流解析、统一 ApiResponse 解析、文档管理 API、RAG 聊天 API
 - `markdown.ts`：前端本地 Markdown 解析与安全 HTML 渲染辅助
 
 ## 当前关键逻辑
@@ -18,9 +18,12 @@
 5. 这样做的原因是 `POST /api/chat/stream` 需要携带请求体，原生 `EventSource` 不适合当前场景。
 6. 当前本地开发默认通过 Vite 代理转发到 `127.0.0.1:8001`，用于避开旧的 `8000` 端口冲突。
 7. 生产环境通过 `VITE_API_BASE_URL` 指向独立后端域名；未配置时默认走同源相对路径。
-8. 流式请求当前支持 `AbortController` 中断，供前端实现“停止生成”。
+8. 流式请求当前支持 `AbortController` 中断，供前端实现”停止生成”。
 9. 会话相关接口包括列表、详情、删除、重试前删除上一轮；真正的 assistant 持久化已经收口到后端流式接口中。
 10. Markdown 渲染当前不依赖第三方库，先覆盖标题、列表、引用、链接、行内代码和 fenced code block。
+11. 文档管理 API 包括上传（`multipart/formax-data`）、列表、详情、删除、重试；上传使用 `FormData` 而非 JSON。
+12. RAG 聊天 API（`streamRagChat`）复用 SSE 流式模式，额外支持 `source` 事件返回检索来源。
+13. SSE 解析器现在支持 `meta`、`message`、`error`、`source`、`done` 五种事件类型。
 
 ## 协作约定
 
