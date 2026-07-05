@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 import { parseMarkdown } from "../lib/markdown";
-import type { ChatMessage } from "../types/chat";
+import SourceBubble from "./SourceBubble.vue";
+import type { ChatMessage, RagSource } from "../types/chat";
 
 const props = defineProps<{
   message: ChatMessage;
+  sources?: RagSource[];
 }>();
 
 const copyState = ref<"idle" | "copied" | "failed">("idle");
@@ -99,5 +101,7 @@ async function copyCode(code: string) {
 
       <p v-else class="message-placeholder">正在等待内容...</p>
     </div>
+
+    <SourceBubble v-if="sources && sources.length > 0" :sources="sources" />
   </article>
 </template>

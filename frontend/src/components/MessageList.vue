@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
-import type { GenerationPhase } from "../types/chat";
+import type { GenerationPhase, RagSource } from "../types/chat";
 import type { ChatMessage } from "../types/chat";
 import MessageBubble from "./MessageBubble.vue";
 
@@ -9,6 +9,7 @@ const props = defineProps<{
   generationPhase: GenerationPhase;
   isGenerating: boolean;
   messages: ChatMessage[];
+  messageSources?: Record<string, RagSource[]>;
 }>();
 
 const shouldAutoScroll = ref(true);
@@ -68,6 +69,7 @@ watch(
         v-for="message in messages"
         :key="message.id"
         :message="message"
+        :sources="messageSources?.[message.id]"
       />
 
       <div v-if="isGenerating" class="typing-row" aria-live="polite">

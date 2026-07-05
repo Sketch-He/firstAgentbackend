@@ -11,6 +11,7 @@ const emit = defineEmits<{
   create: [];
   select: [id: string];
   delete: [id: string];
+  knowledge: [];
 }>();
 
 function formatTime(iso: string): string {
@@ -34,13 +35,23 @@ function formatTime(iso: string): string {
   <aside class="sidebar">
     <div class="sidebar-header">
       <h2 class="sidebar-title">对话历史</h2>
-      <button
-        type="button"
-        class="sidebar-new-btn"
-        @click="emit('create')"
-      >
-        + 新对话
-      </button>
+      <div class="sidebar-header-actions">
+        <button
+          type="button"
+          class="sidebar-knowledge-btn"
+          title="知识库"
+          @click="emit('knowledge')"
+        >
+          📚
+        </button>
+        <button
+          type="button"
+          class="sidebar-new-btn"
+          @click="emit('create')"
+        >
+          + 新对话
+        </button>
+      </div>
     </div>
 
     <div class="sidebar-list">
