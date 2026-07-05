@@ -8,13 +8,16 @@ from fastapi.responses import StreamingResponse
 
 from app.core.exceptions import ApiError
 from app.schemas.chat import ChatRequest, ChatResponse
-from app.schemas.response import ApiResponse, ErrorCode, HTTP_STATUS_TO_CODE
+from app.schemas.document import RagChatRequest
+from app.schemas.response import HTTP_STATUS_TO_CODE, ApiResponse, ErrorCode
 from app.services.conversation import ConversationService
 from app.services.llm import LLMService, LLMServiceError
+from app.services.rag import RAGService
 
 router = APIRouter(prefix="/chat", tags=["chat"])
 llm_service = LLMService()
 conversation_service = ConversationService()
+rag_service = RAGService()
 
 
 def _get_user_id(x_user_id: str = Header(default="")) -> str:
@@ -167,6 +170,109 @@ async def stream_chat_reply(request: Request, payload: ChatRequest, x_user_id: s
 
     return StreamingResponse(
         _stream_and_persist(user_id, payload, conversation),
+        media_type="text/event-stream",
+        headers=headers,
+    )
+
+
+async def _rag_stream_and_persist(
+    user_id: str,
+    payload: RagChatRequest,
+    conversation: dict,
+) -> AsyncIterator[str]:
+    """RAG 流式聊天：检索 + 生成 + 持久化。"""
+    assistant_chunks: list[str] = []
+    conversation_id = conversation["id"]
+    user_messages = [message for message in payload.messages if message.role == "user"]
+
+    if user_messages:
+        last_user_message = user_messages[-1]
+        await conversation_service.save_message(user_id, conversation_id, "user", last_user_message.content)
+        conversation = await conversation_service.auto_title_from_message(
+            user_id, conversation_id, last_user_message.content
+        ) or conversation
+
+    try:
+        async for chunk in rag_service.rag_chat_stream(payload, user_id):
+            parsed_event = _parse_sse_event(chunk)
+            if parsed_event is None:
+                continue
+
+            event_name, data = parsed_event
+
+            if event_name == "meta":
+                # 附加会话信息到 meta 事件
+                data["conversation"] = conversation
+                yield _format_sse("meta", data)
+                continue
+
+            if event_name == "message":
+                delta = data.get("delta")
+                if isinstance(delta, str):
+                    assistant_chunks.append(delta)
+                yield chunk
+                continue
+
+            if event_name == "source":
+                yield chunk
+                continue
+
+            if event_name == "done":
+                updated_conversation = await _persist_assistant_reply(user_id, conversation_id, assistant_chunks)
+                if updated_conversation:
+                    data["conversation"] = updated_conversation
+                yield _format_sse("done", data)
+                return
+
+            yield chunk
+    except asyncio.CancelledError:
+        await _persist_assistant_reply(user_id, conversation_id, assistant_chunks)
+        raise
+    except Exception:
+        yield _format_sse(
+            "error",
+            {"message": "RAG 流式生成过程中发生未预期错误。", "status_code": 502},
+        )
+        updated_conversation = await _persist_assistant_reply(user_id, conversation_id, assistant_chunks)
+        yield _format_sse(
+            "done",
+            {
+                "finish_reason": "error",
+                "conversation": updated_conversation,
+            },
+        )
+
+
+@router.post("/rag")
+async def rag_chat_stream(request: Request, payload: RagChatRequest, x_user_id: str = Header()) -> StreamingResponse:
+    """RAG 流式聊天端点。"""
+    user_id = _get_user_id(x_user_id)
+
+    try:
+        rag_service.llm_service.ensure_configured()
+    except LLMServiceError as exc:
+        code = HTTP_STATUS_TO_CODE.get(exc.status_code, ErrorCode.LLM_CONFIG_ERROR)
+        raise ApiError(code=code, message=exc.message, status_code=exc.status_code) from exc
+
+    if not any(m.role == "user" for m in payload.messages):
+        raise ApiError(code=ErrorCode.BAD_REQUEST, message="至少需要一条用户消息。", status_code=400)
+
+    try:
+        conversation = await conversation_service.ensure_conversation(user_id, payload.conversation_id)
+    except ValueError as exc:
+        raise ApiError(code=ErrorCode.NOT_FOUND, message=str(exc), status_code=404) from exc
+
+    payload.conversation_id = conversation["id"]
+
+    headers = {
+        "Cache-Control": "no-cache",
+        "Connection": "keep-alive",
+        "X-Conversation-Id": conversation["id"],
+        "X-Accel-Buffering": "no",
+    }
+
+    return StreamingResponse(
+        _rag_stream_and_persist(user_id, payload, conversation),
         media_type="text/event-stream",
         headers=headers,
     )
