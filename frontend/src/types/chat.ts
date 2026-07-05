@@ -86,3 +86,43 @@ export interface ConversationMessage {
 export interface ConversationDetail extends ConversationSummary {
   messages: ConversationMessage[];
 }
+
+// 文档相关类型
+export interface DocumentInfo {
+  id: string;
+  filename: string;
+  file_type: string;
+  file_size: number;
+  chunk_count: number;
+  status: "processing" | "ready" | "failed";
+  error_message?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DocumentListResponse {
+  documents: DocumentInfo[];
+}
+
+export type RagMode = "auto" | "always" | "never";
+
+export interface RagChatRequest {
+  messages: ChatRequestMessage[];
+  conversation_id?: string;
+  rag_mode: RagMode;
+  top_k?: number;
+}
+
+export interface RagSource {
+  document_id: string;
+  filename: string;
+  chunk_index: number;
+  snippet: string;
+}
+
+export interface StreamSourceEvent {
+  document_id: string;
+  filename: string;
+  chunk_index: number;
+  snippet: string;
+}

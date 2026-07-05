@@ -4,10 +4,14 @@ import type {
   ChatResponse,
   ConversationDetail,
   ConversationSummary,
+  DocumentInfo,
+  DocumentListResponse,
+  RagChatRequest,
   StreamDoneEvent,
   StreamErrorEvent,
   StreamMessageEvent,
-  StreamMetaEvent
+  StreamMetaEvent,
+  StreamSourceEvent
 } from "../types/chat";
 import { getUserId } from "../utils/cookie";
 
@@ -112,6 +116,7 @@ interface StreamChatHandlers {
   onMessage: (payload: StreamMessageEvent) => void;
   onError?: (payload: StreamErrorEvent) => void;
   onDone?: (payload: StreamDoneEvent) => void;
+  onSource?: (payload: StreamSourceEvent) => void;
 }
 
 export interface StreamChatController {
@@ -235,6 +240,11 @@ function parseSseChunk(chunk: string, handlers: StreamChatHandlers) {
     return;
   }
 
+  if (eventName === "source") {
+    handlers.onSource?.(payload as StreamSourceEvent);
+    return;
+  }
+
   if (eventName === "done") {
     handlers.onDone?.(payload as StreamDoneEvent);
   }
@@ -280,4 +290,118 @@ export async function deleteLastTurn(id: string): Promise<ConversationSummary> {
     undefined,
     "准备重试上一轮对话失败。"
   );
+}
+
+// 文档管理 API
+
+export async function uploadDocument(file: File): Promise<DocumentInfo> {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const response = await fetch(`${apiBaseUrl}/api/documents/upload`, {
+    method: "POST",
+    headers: { "X-User-Id": getUserId() },
+    body: formData
+  });
+
+  return unwrapResponse<DocumentInfo>(response, "文档上传失败。");
+}
+
+export async function listDocuments(): Promise<DocumentInfo[]> {
+  const response = await getJson<DocumentListResponse>("/api/documents", "获取文档列表失败。");
+  return response.documents;
+}
+
+export async function getDocument(id: string): Promise<DocumentInfo> {
+  return getJson<DocumentInfo>(`/api/documents/${id}`, "获取文档详情失败。");
+}
+
+export async function deleteDocument(id: string): Promise<void> {
+  await sendJson<void>("DELETE", `/api/documents/${id}`, undefined, "删除文档失败。");
+}
+
+export async function retryDocument(id: string): Promise<DocumentInfo> {
+  return sendJson<DocumentInfo>(
+    "POST",
+    `/api/documents/${id}/retry`,
+    undefined,
+    "重试文档处理失败。"
+  );
+}
+
+// RAG 聊天 API
+
+export async function streamRagChat(
+  payload: RagChatRequest,
+  handlers: StreamChatHandlers
+): Promise<StreamChatController> {
+  const abortController = new AbortController();
+
+  const completed = (async () => {
+    const response = await fetch(`${apiBaseUrl}/api/chat/rag`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "text/event-stream",
+        "X-User-Id": getUserId()
+      },
+      body: JSON.stringify(payload),
+      signal: abortController.signal
+    });
+
+    if (!response.ok) {
+      const contentType = response.headers.get("content-type") ?? "";
+      if (contentType.includes("application/json")) {
+        try {
+          const body = (await response.json()) as ApiResponse;
+          if (body.code !== undefined) {
+            throw new ApiError(body.code, body.message || `RAG 请求失败，状态码：${response.status}`);
+          }
+        } catch (e) {
+          if (e instanceof ApiError) throw e;
+        }
+      }
+      throw new Error(
+        await readErrorMessage(response, `RAG 请求失败，状态码：${response.status}`)
+      );
+    }
+
+    if (!response.body) {
+      throw new Error("浏览器未提供可读取的流式响应。");
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder("utf-8");
+    let buffer = "";
+
+    while (true) {
+      const { done, value } = await reader.read();
+
+      if (done) {
+        break;
+      }
+
+      buffer += decoder.decode(value, { stream: true });
+
+      const chunks = buffer.split("\n\n");
+      buffer = chunks.pop() ?? "";
+
+      for (const chunk of chunks) {
+        if (chunk.trim()) {
+          parseSseChunk(chunk, handlers);
+        }
+      }
+    }
+
+    buffer += decoder.decode();
+
+    if (buffer.trim()) {
+      parseSseChunk(buffer, handlers);
+    }
+  })();
+
+  return {
+    abort: () => abortController.abort(),
+    completed
+  };
 }
