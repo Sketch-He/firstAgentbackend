@@ -1,11 +1,13 @@
 <script setup lang="ts">
-import { watch } from "vue";
+import { ref, watch } from "vue";
 import Composer from "../components/Composer.vue";
 import Header from "../components/Header.vue";
+import KnowledgePanel from "../components/KnowledgePanel.vue";
 import MessageList from "../components/MessageList.vue";
 import Sidebar from "../components/Sidebar.vue";
 import { useChat } from "../composables/useChat";
 import { useConversation } from "../composables/useConversation";
+import { useDocuments } from "../composables/useDocuments";
 import { getConversation } from "../lib/chatApi";
 import type { ConversationSummary } from "../types/chat";
 
@@ -18,6 +20,18 @@ const {
   loadConversations,
   upsertSummary
 } = useConversation();
+
+const {
+  documents,
+  isLoading: isLoadingDocuments,
+  isUploading,
+  loadDocuments,
+  uploadDocument,
+  deleteDocument,
+  retryDocument
+} = useDocuments();
+
+const showKnowledgePanel = ref(false);
 
 function syncConversation(conversation: ConversationSummary) {
   upsertSummary(conversation);
@@ -32,17 +46,39 @@ const {
   generationPhase,
   isGenerating,
   messages,
+  messageSources,
+  ragMode,
   loadConversation,
   resetToNew,
   retryLastTurn,
   setDraft,
   setError,
+  setRagMode,
   stopGeneration,
   submitDraft
 } = useChat({
   onConversationSync: syncConversation,
   refreshConversations: loadConversations
 });
+
+const hasReadyDocuments = ref(false);
+
+// 监听文档列表变化，更新 hasReadyDocuments
+watch(documents, (docs) => {
+  hasReadyDocuments.value = docs.some((d) => d.status === "ready");
+}, { immediate: true });
+
+async function handleDocumentUpload(file: File) {
+  await uploadDocument(file);
+}
+
+async function handleDocumentDelete(id: string) {
+  await deleteDocument(id);
+}
+
+async function handleDocumentRetry(id: string) {
+  await retryDocument(id);
+}
 
 let latestLoadVersion = 0;
 
@@ -107,6 +143,10 @@ async function handleDelete(id: string) {
     resetToNew();
   }
 }
+
+function handleKnowledgePanel() {
+  showKnowledgePanel.value = !showKnowledgePanel.value;
+}
 </script>
 
 <template>
@@ -119,6 +159,18 @@ async function handleDelete(id: string) {
         @create="handleCreate"
         @select="handleSelect"
         @delete="handleDelete"
+        @knowledge="showKnowledgePanel = !showKnowledgePanel"
+      />
+
+      <KnowledgePanel
+        v-if="showKnowledgePanel"
+        :documents="documents"
+        :is-loading="isLoadingDocuments"
+        :is-uploading="isUploading"
+        @upload="handleDocumentUpload"
+        @delete="handleDocumentDelete"
+        @retry="handleDocumentRetry"
+        @close="showKnowledgePanel = false"
       />
 
       <section class="chat-shell">
@@ -129,6 +181,7 @@ async function handleDelete(id: string) {
             :generation-phase="generationPhase"
             :is-generating="isGenerating"
             :messages="messages"
+            :message-sources="messageSources"
           />
           <Composer
             :can-retry="canRetry"
@@ -136,9 +189,12 @@ async function handleDelete(id: string) {
             :generation-label="generationLabel"
             :generation-phase="generationPhase"
             :is-generating="isGenerating"
+            :rag-mode="ragMode"
+            :has-documents="hasReadyDocuments"
             @retry="retryLastTurn"
             @stop="stopGeneration"
             @update:draft="setDraft"
+            @update:rag-mode="setRagMode"
             @submit="submitDraft"
           />
         </div>

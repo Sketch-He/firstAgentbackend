@@ -1,11 +1,13 @@
 import { computed, ref } from "vue";
-import { deleteLastTurn, streamChatReply } from "../lib/chatApi";
+import { deleteLastTurn, streamChatReply, streamRagChat } from "../lib/chatApi";
 import type {
   ChatMessage,
   ChatRequestMessage,
   ConversationMessage,
   ConversationSummary,
-  GenerationPhase
+  GenerationPhase,
+  RagMode,
+  RagSource
 } from "../types/chat";
 
 const welcomeMessage: ChatMessage = {
@@ -47,6 +49,8 @@ export function useChat(options?: UseChatOptions) {
   const currentAbort = ref<(() => void) | null>(null);
   const currentAssistantMessageId = ref("");
   const currentConversationId = ref<string | null>(null);
+  const ragMode = ref<RagMode>("auto");
+  const messageSources = ref<Record<string, RagSource[]>>({});
   const canRetry = computed(() => Boolean(lastSubmittedContent.value) && !isGenerating.value);
   const generationLabel = computed(() => {
     switch (generationPhase.value) {
@@ -73,6 +77,7 @@ export function useChat(options?: UseChatOptions) {
     currentAssistantMessageId.value = "";
     isGenerating.value = false;
     generationPhase.value = "idle";
+    messageSources.value = {};
   }
 
   function resetToNew() {
@@ -86,6 +91,7 @@ export function useChat(options?: UseChatOptions) {
     currentAssistantMessageId.value = "";
     isGenerating.value = false;
     generationPhase.value = "idle";
+    messageSources.value = {};
   }
 
   async function submitDraft() {
@@ -117,41 +123,50 @@ export function useChat(options?: UseChatOptions) {
     currentAssistantMessageId.value = assistantMessageId;
 
     let streamErrorMessage = "";
+    const currentSources: RagSource[] = [];
 
     try {
-      const streamController = await streamChatReply(
-        {
-          messages: toRequestMessages(messages.value.filter((message) => message.id !== assistantMessageId)),
-          conversation_id: currentConversationId.value ?? undefined
-        },
-        {
-          onMeta: (payload) => {
-            generationPhase.value = "awaiting";
+      const requestPayload = {
+        messages: toRequestMessages(messages.value.filter((message) => message.id !== assistantMessageId)),
+        conversation_id: currentConversationId.value ?? undefined
+      };
 
-            if (payload.conversation) {
-              currentConversationId.value = payload.conversation.id;
-              options?.onConversationSync?.(payload.conversation);
-            }
-          },
-          onMessage: ({ delta }) => {
-            generationPhase.value = "streaming";
-            messages.value = messages.value.map((message) =>
-              message.id === assistantMessageId
-                ? { ...message, content: `${message.content}${delta}` }
-                : message
-            );
-          },
-          onError: ({ message }) => {
-            streamErrorMessage = message;
-          },
-          onDone: (payload) => {
-            if (payload.conversation) {
-              currentConversationId.value = payload.conversation.id;
-              options?.onConversationSync?.(payload.conversation);
-            }
+      const handlers = {
+        onMeta: (payload: any) => {
+          generationPhase.value = "awaiting";
+
+          if (payload.conversation) {
+            currentConversationId.value = payload.conversation.id;
+            options?.onConversationSync?.(payload.conversation);
           }
+        },
+        onMessage: ({ delta }: { delta: string }) => {
+          generationPhase.value = "streaming";
+          messages.value = messages.value.map((message) =>
+            message.id === assistantMessageId
+              ? { ...message, content: `${message.content}${delta}` }
+              : message
+          );
+        },
+        onError: ({ message }: { message: string }) => {
+          streamErrorMessage = message;
+        },
+        onDone: (payload: any) => {
+          if (payload.conversation) {
+            currentConversationId.value = payload.conversation.id;
+            options?.onConversationSync?.(payload.conversation);
+          }
+        },
+        onSource: (source: any) => {
+          currentSources.push(source);
         }
-      );
+      };
+
+      // 根据 RAG 模式选择 API
+      const useRag = ragMode.value !== "never";
+      const streamController = useRag
+        ? await streamRagChat({ ...requestPayload, rag_mode: ragMode.value }, handlers)
+        : await streamChatReply(requestPayload, handlers);
 
       currentAbort.value = streamController.abort;
       generationPhase.value = "awaiting";
@@ -164,6 +179,14 @@ export function useChat(options?: UseChatOptions) {
 
       if (streamErrorMessage) {
         throw new Error(streamErrorMessage);
+      }
+
+      // 保存来源信息
+      if (currentSources.length > 0) {
+        messageSources.value = {
+          ...messageSources.value,
+          [assistantMessageId]: currentSources
+        };
       }
     } catch (requestError) {
       const targetMessage = messages.value.find((message) => message.id === assistantMessageId);
@@ -247,6 +270,10 @@ export function useChat(options?: UseChatOptions) {
     error.value = value;
   }
 
+  function setRagMode(value: RagMode) {
+    ragMode.value = value;
+  }
+
   return {
     canRetry,
     currentConversationId,
@@ -257,11 +284,14 @@ export function useChat(options?: UseChatOptions) {
     isGenerating,
     lastSubmittedContent,
     messages,
+    messageSources,
+    ragMode,
     loadConversation,
     resetToNew,
     retryLastTurn,
     setDraft,
     setError,
+    setRagMode,
     stopGeneration,
     submitDraft
   };
