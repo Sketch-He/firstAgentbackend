@@ -1,5 +1,7 @@
 # Agent Demo 项目骨架
 
+> 📖 **完整项目说明文档（含技术选型、面试要点）**：[docs/project-guide.md](docs/project-guide.md)
+
 当前工作区拆成两个实现目录：
 
 - `frontend/`：基于 `Vue 3 + Vite + TypeScript` 的前端聊天页面
@@ -11,6 +13,7 @@
 - 前端消息列表、输入区、会话侧栏和基础 Markdown 渲染
 - 后端真实 DeepSeek 兼容聊天服务与 SSE 流式输出
 - 对话历史持久化保存
+- RAG 知识库功能：文档上传、解析、向量化、基于文档的问答
 - 为后续工具调用、Agent 编排预留结构
 
 ## 推荐上线架构
@@ -86,6 +89,12 @@ python -m venv .venv
 pip install -e .
 uvicorn app.main:app --reload --port 8001
 ```
+
+# 改完代码后，跑一遍：
+cd python && .venv/Scripts/pytest && .venv/Scripts/ruff check app/
+cd frontend && npm run test
+
+测试不过 = 不能提交，这是硬性要求。
 
 ## 文档维护约定
 
