@@ -5,7 +5,7 @@ from typing import Any
 from openai import APIConnectionError, APIStatusError, AsyncOpenAI, RateLimitError
 
 from app.core.config import get_settings
-from app.schemas.chat import ChatRequest, ChatResponse, ChatMessage
+from app.schemas.chat import ChatMessage, ChatRequest, ChatResponse
 
 
 class LLMServiceError(Exception):

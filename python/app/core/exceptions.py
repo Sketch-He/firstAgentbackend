@@ -2,7 +2,7 @@ from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
-from app.schemas.response import ApiResponse, ErrorCode, HTTP_STATUS_TO_CODE
+from app.schemas.response import ApiResponse, ErrorCode
 
 
 class ApiError(Exception):

@@ -27,6 +27,21 @@ CREATE INDEX IF NOT EXISTS idx_messages_conversation
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_messages_conversation_sort_order
     ON messages(conversation_id, sort_order);
+
+CREATE TABLE IF NOT EXISTS documents (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    filename TEXT NOT NULL,
+    file_type TEXT NOT NULL,
+    file_size INTEGER NOT NULL,
+    chunk_count INTEGER NOT NULL DEFAULT 0,
+    status TEXT NOT NULL DEFAULT 'processing',
+    error_message TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_documents_user_id ON documents(user_id);
 """
 
 

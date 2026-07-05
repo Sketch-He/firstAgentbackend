@@ -25,6 +25,16 @@ class Settings(BaseSettings):
     assistant_system_prompt: str = "你是一个中文 AI 助手，请优先给出准确、直接、可执行的回答。"
     request_timeout_seconds: float = 60.0
 
+    # RAG 知识库配置
+    embedding_api_key: str = Field(default="", repr=False)
+    embedding_base_url: str = ""
+    embedding_model: str = "text-embedding-3-small"
+    chroma_persist_dir: str = "./chroma_db"
+    rag_chunk_size: int = 500
+    rag_chunk_overlap: int = 50
+    rag_top_k: int = 3
+    max_upload_size_mb: int = 10
+
     @field_validator("cors_origins_raw", mode="before")
     @classmethod
     def normalize_cors_origins_raw(cls, value: str | list[str]) -> str:
@@ -45,6 +55,24 @@ class Settings(BaseSettings):
             return sqlite_path
 
         return Path(__file__).resolve().parents[2] / sqlite_path
+
+    @property
+    def resolved_chroma_dir(self) -> Path:
+        chroma_path = Path(self.chroma_persist_dir).expanduser()
+        if chroma_path.is_absolute():
+            return chroma_path
+
+        return Path(__file__).resolve().parents[2] / chroma_path
+
+    @property
+    def effective_embedding_api_key(self) -> str:
+        """Embedding API Key 未单独配置时，回退到 openai_api_key。"""
+        return self.embedding_api_key or self.openai_api_key
+
+    @property
+    def effective_embedding_base_url(self) -> str:
+        """Embedding Base URL 未单独配置时，回退到 openai_base_url。"""
+        return self.embedding_base_url or self.openai_base_url
 
 
 @lru_cache
